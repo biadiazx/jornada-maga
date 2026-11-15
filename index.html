@@ -125,6 +125,11 @@ button{font:inherit;color:inherit}
 .mis.key{border-style:dashed}
 .mis.pop{animation:pop .45s ease-out}
 .misrow{display:flex;gap:6px;align-items:stretch}
+.edrow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border-radius:14px;border:1px dashed rgba(127,224,207,.45);background:var(--night-2)}
+.edname{display:grid}.edname span{font-size:13px;color:var(--mist)}
+.edctl{display:flex;gap:6px;align-items:center}
+.stp{width:36px;height:36px;border-radius:10px;border:1px solid var(--gold);background:transparent;color:var(--gold);font-size:20px;cursor:pointer}
+.wprev{margin:0}
 .misrow .mis{flex:1}
 .mis.extra{border-color:rgba(127,224,207,.4)}
 .xdel{width:40px;border-radius:12px;border:1px solid rgba(255,157,177,.5);background:transparent;color:var(--rose);cursor:pointer;font-size:20px}
@@ -269,10 +274,10 @@ button{font:inherit;color:inherit}
     <h2>Regras do grimório</h2>
     <ol class="rules">
       <li>Marque as missões no fechamento do dia. O XP soma na hora.</li>
-      <li>Cada nível tem uma meta de XP: meta de dias × XP de um dia completo que conta. Ela se recalcula quando você muda o XP das missões, os dias que contam ou a meta.</li>
+      <li>Cada dia completo vale um total fixo de XP (100 no padrão). O peso de cada missão decide como esse total é dividido: se uma sobe, as outras descem. A meta do nível é meta de dias × XP de um dia completo.</li>
       <li>Bateu a meta, o nível desbloqueia na hora. O XP que sobrar passa para o próximo nível, e você nunca perde um nível conquistado.</li>
       <li>A recompensa e o visual vêm na hora. A mudança na rotina do novo nível começa na segunda seguinte, para nada mudar de surpresa no meio da semana.</li>
-      <li>Missões fixas se repetem; missões extras valem só para um dia. Toque nos dias da semana para escolher quais contam e quais são livres.</li>
+      <li>Missões fixas se repetem; missões extras valem só para um dia e somam por cima. Em "Editar este dia" você muda o peso, pula uma missão só naquele dia ou cria uma fixa nova. Toque nos dias da semana para escolher quais contam e quais são livres.</li>
       <li>Toda recompensa é fixa e combinada antes. Nada de sorteio.</li>
     </ol>
   </article>
@@ -343,7 +348,7 @@ const SKINS = ["#f6dcc4","#efc9a8","#e2ae86","#b77a52","#7a4a2c"];
 const HAIRS = ["#231814","#3a281e","#6e4327","#b9532f","#e3c27a"];
 const LIPS = "#d4848c";
 
-const DEFAULT = () => ({v:4,level:1,levelBase:0,levelFrom:{"1":"2000-01-01"},days:{},weekly:{},history:[],missions:DEFAULT_MISSIONS(),
+const DEFAULT = () => ({v:5,dayTotal:100,weekTotal:60,skips:{},level:1,levelBase:0,levelFrom:{"1":"2000-01-01"},days:{},weekly:{},history:[],missions:DEFAULT_MISSIONS(),
   rewards:{dia:"2 episódios de Brooklyn Nine-Nine",nivel:"A definir",final:"A definir"},
   look:{skin:1,hair:0},sound:false,calm:false,done:false,countDays:[1,2,3,4,6],goal:4,extras:{},levels:JSON.parse(JSON.stringify(LEVELS))});
 
@@ -388,15 +393,33 @@ function migrate(d){
   if(!Array.isArray(s.countDays)||!s.countDays.length) s.countDays=[1,2,3,4,6];
   s.goal=Math.max(1,Math.min(s.countDays.length,Number(s.goal)||4));
   if(!s.levelFrom||typeof s.levelFrom!=="object") s.levelFrom={"1":"2000-01-01"};
+  s.dayTotal=Math.max(10,Math.min(1000,Number(s.dayTotal)||100)); s.weekTotal=Math.max(0,Math.min(1000,Number(s.weekTotal)||60));
+  if(!s.skips||typeof s.skips!=="object") s.skips={};
   if(!Array.isArray(s.history)) s.history=[];
   delete s.rules; delete s["level"+"Start"];
-  s.v=4; return s;
+  s.v=5; return s;
 }
 const LVS = () => state.levels;
 const L = () => LVS()[state.level-1];
 const alive = (m,s) => (!m.start||s>=m.start)&&(!m.end||s<m.end);
-const missionsFor = s => {const wd=parse(s).getDay();return state.missions.daily.filter(m=>m.days.includes(wd)&&alive(m,s));};
-const weeklyFor = w => state.missions.weekly.filter(m=>alive(m,w)||alive(m,addDays(w,6)));
+const scheduledFor = s => {const wd=parse(s).getDay();return state.missions.daily.filter(m=>m.days.includes(wd)&&alive(m,s));};
+const missionsFor = s => {const sk=state.skips[s]||[];return scheduledFor(s).filter(m=>!sk.includes(m.id));};
+function distribute(list,total){
+  const w=list.map(m=>Math.max(1,Number(m.xp)||1)), sum=w.reduce((a,b)=>a+b,0), out={};
+  if(!list.length) return out;
+  const raw=w.map(x=>x/sum*total), base=raw.map(Math.floor); let left=total-base.reduce((a,b)=>a+b,0);
+  raw.map((r,i)=>[r-base[i],i]).sort((a,b)=>b[0]-a[0]).forEach(([,i])=>{if(left>0){base[i]++;left--;}});
+  list.forEach((m,i)=>out[m.id]=base[i]); return out;
+}
+const xpMap = s => distribute(missionsFor(s),state.dayTotal);
+const weeklyMap = w => distribute(weeklyFor(w),state.weekTotal);
+function resync(from){
+  for(const s in state.days){ if(s<from) continue; const map=xpMap(s), b=state.days[s];
+    for(const id in b){ if(id in map){ b[id].x=map[id]; } } }
+  for(const w in state.weekly){ if(addDays(w,6)<from) continue; const map=weeklyMap(w), b=state.weekly[w];
+    for(const id in b){ if(id in map){ b[id].x=map[id]; } } }
+}
+const weeklyFor = w => state.missions.weekly.filter(m=>alive(m,w));
 const extrasFor = s => state.extras[s]||[];
 const isCountDay = s => state.countDays.includes(parse(s).getDay());
 function countsDay(s){
@@ -409,11 +432,8 @@ function countsDay(s){
 const firstWeek = () => START;
 const curWeek = () => {const w=weekStartOf(today());return w<START?START:w;};
 const refDay = () => today()<START?START:today();
-function avgDayXP(){
-  const r=refDay(), vals=state.countDays.map(wd=>state.missions.daily.filter(m=>m.days.includes(wd)&&alive(m,r)).reduce((a,m)=>a+m.xp,0));
-  const v=vals.filter(x=>x>0); return v.length?v.reduce((a,b)=>a+b,0)/v.length:50;
-}
-const metaXP = () => Math.max(10,Math.round(state.goal*avgDayXP()/10)*10);
+const avgDayXP = () => state.dayTotal;
+const metaXP = () => Math.max(10,state.goal*state.dayTotal);
 const bagXP = b => Object.values(b||{}).reduce((a,v)=>a+(v&&v.x||0),0);
 const dayXP = s => bagXP(state.days[s]);
 const weeklyXP = w => bagXP(state.weekly[w]);
@@ -606,7 +626,7 @@ function renderInfo(){
     <h2 class="title">${esc(lv.title)}</h2>
     <div class="xprow"><div><span class="bignum" id="xpnum">${shownXP}</span> <span class="muted">XP total</span></div></div>
     <div class="prog"><div class="lab"><span>${state.done?"Jornada completa":"XP para o próximo nível"}</span><b>${state.done?"✦":Math.min(prog,meta)+" / "+meta+" XP"}</b></div><div class="pbar" aria-hidden="true"><i style="width:${state.done?100:Math.min(prog/meta*100,100)}%"></i></div>
-      <span class="hint">Meta do nível: ${state.goal} dias × ${Math.round(avg)} XP de um dia completo que conta.</span></div>
+      <span class="hint">Meta do nível: ${state.goal} dias completos × ${state.dayTotal} XP. Mudar o peso das missões não mexe na meta: o XP só se redistribui.</span></div>
     <div class="unlock">${unlock}</div>
     <div class="prog"><div class="lab"><span>Dias cumpridos na semana de ${fmt(w[0])}</span><b>${done} / ${countDays.length}</b></div>
       <div class="gems">${gems}</div><span class="hint">Toque num dia para marcar se ele conta ou é livre.</span></div>
@@ -622,38 +642,55 @@ function animateXP(){
   function step(t){const k=Math.min((t-t0)/650,1);const v=Math.round(from+(target-from)*(1-Math.pow(1-k,3)));el.textContent=v;if(k<1)requestAnimationFrame(step);else shownXP=target;}
   requestAnimationFrame(step);
 }
-function misBtn(kind,m,rec,disabled,label,extra){
-  const on=!!rec, xp=on?rec.x:m.xp;
+function misBtn(kind,m,rec,disabled,label,extra,xpNow){
+  const on=!!rec, xp=on?rec.x:xpNow;
   return `<div class="misrow"><button class="mis ${m.key?"key":""} ${extra?"extra":""}" id="m-${kind}-${esc(m.id)}" data-action="toggle" data-kind="${kind}" data-key="${esc(m.id)}" aria-pressed="${on?"true":"false"}" ${disabled?"disabled":""}>
     <span class="ic">${icon(m.ic||"star")}</span><span><b>${esc(label||m.name)}</b><em>${extra?"Missão extra · só neste dia":esc(m.spell||m.attr)+(m.key?" · cumpre o dia":"")}</em></span><span class="xp">${on?"✦ ":""}+${xp} XP</span></button>
     ${extra&&!on&&!disabled?`<button class="xdel" data-action="x-del" data-key="${esc(m.id)}" aria-label="Tirar a missão extra ${esc(m.name)}">×</button>`:""}</div>`;
 }
+function editRow(m,xp,past){
+  return `<div class="edrow"><div class="edname"><b>${esc(m.name)}</b><span>${xp} XP neste dia · peso ${m.xp}</span></div>
+    <div class="edctl">${past?"":`<button class="stp" data-action="w-dn" data-key="${esc(m.id)}" aria-label="Diminuir o peso de ${esc(m.name)}">−</button><button class="stp" data-action="w-up" data-key="${esc(m.id)}" aria-label="Aumentar o peso de ${esc(m.name)}">+</button>`}
+    <button class="edit" data-action="skip" data-key="${esc(m.id)}">Pular neste dia</button></div></div>`;
+}
+let editDay=false;
 function renderToday(){
   const w=weekOf(viewWeek), t=today();
   const tabs=w.map(s=>`<button class="tab ${countsDay(s)?"done":""}" role="tab" data-action="day" data-day="${s}" aria-selected="${s===selDay?"true":"false"}">${WD[parse(s).getDay()]} ${fmt(s)}</button>`).join("");
-  const future=selDay>t, wd=parse(selDay).getDay(), weekend=wd===0||wd===6, r=routineFor(selDay);
+  const future=selDay>t, past=selDay<t, wd=parse(selDay).getDay(), weekend=wd===0||wd===6, r=routineFor(selDay);
   const wake=weekend?fromMin(toMin(r.wake)+60):r.wake;
-  const b=state.days[selDay]||{}, ms=missionsFor(selDay), xs=extrasFor(selDay);
+  const b=state.days[selDay]||{}, ms=missionsFor(selDay), xs=extrasFor(selDay), map=xpMap(selDay);
+  const skipped=scheduledFor(selDay).filter(m=>(state.skips[selDay]||[]).includes(m.id));
   const known=new Set(ms.map(m=>m.id).concat(xs.map(m=>m.id)));
   const orphan=Object.keys(b).filter(k=>!known.has(k));
-  let list=ms.map(m=>misBtn("day",m,b[m.id],future,m.name===WAKE_NAME?(weekend?"Acordei até "+wake:"Acordei às "+wake):null,false)).join("");
-  list+=xs.map(m=>misBtn("day",Object.assign({ic:"star"},m),b[m.id],future,null,true)).join("");
-  if(orphan.length) list+=`<p class="hint">Também registrado neste dia: ${orphan.length} missão(ões) que saíram da lista (${orphan.reduce((a,k)=>a+b[k].x,0)} XP guardados).</p>`;
+  const lab=m=>m.name===WAKE_NAME?(weekend?"Acordei até "+wake:"Acordei às "+wake):null;
+  let list;
+  if(editDay){
+    list=ms.map(m=>editRow(m,map[m.id],past)).join("");
+    list+=skipped.length?`<p class="hint">Puladas neste dia: ${skipped.map(m=>`${esc(m.name)} <button class="edit" data-action="unskip" data-key="${esc(m.id)}">voltar</button>`).join(" · ")}</p>`:"";
+    list+=`<p class="hint">${past?"Dia que já passou: dá para pular missões, mas o peso só muda de hoje em diante.":"O peso vale deste dia em diante. O total do dia continua "+state.dayTotal+" XP: quando uma missão sobe, as outras descem."}</p>
+      <div class="row" style="justify-content:flex-start"><button class="btn ghost small" data-action="f-add">+ Missão fixa</button><button class="btn small" data-action="day-edit">Concluir edição</button></div>`;
+  } else {
+    list=ms.map(m=>misBtn("day",m,b[m.id],future,lab(m),false,map[m.id])).join("");
+    list+=xs.map(m=>misBtn("day",Object.assign({ic:"star"},m),b[m.id],future,null,true,m.xp)).join("");
+    if(skipped.length) list+=`<p class="hint">Pulada${skipped.length>1?"s":""} neste dia: ${skipped.map(m=>esc(m.name)).join(", ")}.</p>`;
+    if(orphan.length) list+=`<p class="hint">Também registrado neste dia: ${orphan.length} missão(ões) que saíram da lista (${orphan.reduce((a,k)=>a+b[k].x,0)} XP guardados).</p>`;
+  }
   const hasKey=ms.some(m=>m.key), cd=isCountDay(selDay);
   const canPrev=viewWeek>firstWeek(), canNext=viewWeek<curWeek();
-  $("todayCard").innerHTML=`<h2>Missões do dia <span>${dayXP(selDay)} XP <button class="edit" data-action="edit">Editar fixas</button></span></h2>
+  $("todayCard").innerHTML=`<h2>Missões do dia <span>${dayXP(selDay)} / ${ms.length?state.dayTotal:0} XP ${editDay?"":`<button class="edit" data-action="day-edit">Editar este dia</button>`}</span></h2>
     <div class="weeknav"><button class="edit" data-action="wk" data-d="-7" ${canPrev?"":"disabled"} aria-label="Semana anterior">‹</button><span>Semana de ${fmt(w[0])} a ${fmt(w[6])}</span><button class="edit" data-action="wk" data-d="7" ${canNext?"":"disabled"} aria-label="Próxima semana">›</button></div>
     <div class="tabs" role="tablist" aria-label="Dias da semana">${tabs}</div>
-    ${future?`<p class="hint">Este dia ainda não chegou. As missões abrem em ${fmt(selDay)}.</p>`:""}
+    ${future&&!editDay?`<p class="hint">Este dia ainda não chegou. As missões abrem em ${fmt(selDay)}.</p>`:""}
     <div class="missions">${list||'<p class="hint">Nenhuma missão fixa neste dia.</p>'}</div>
-    ${future?"":`<button class="btn ghost small" data-action="x-add">+ Missão extra ${selDay===t?"de hoje":"de "+fmt(selDay)}</button>`}
+    ${future||editDay?"":`<div class="row" style="justify-content:flex-start"><button class="btn ghost small" data-action="x-add">+ Missão extra ${selDay===t?"de hoje":"de "+fmt(selDay)}</button><button class="btn ghost small" data-action="edit">Todas as missões fixas</button></div>`}
     <p class="hint">${!cd?"Dia livre: rende XP normalmente, só não entra na conta de dias.":hasKey?"Dia que conta. A missão tracejada cumpre o dia.":"Dia que conta. Ele fica cumprido quando você faz todas as missões fixas dele."}</p>`;
 }
 function renderWeek(){
   const b=state.weekly[viewWeek]||{}, notYet=today()<viewWeek;
-  $("weekCard").innerHTML=`<h2>Missões da semana <span>${weeklyXP(viewWeek)} XP <button class="edit" data-action="edit">Editar</button></span></h2>
-    <div class="missions">${weeklyFor(viewWeek).map(m=>misBtn("week",m,b[m.id],notYet,null,false)).join("")||'<p class="hint">Nenhuma missão semanal.</p>'}</div>
-    <p class="hint">Valem uma vez na semana de ${fmt(viewWeek)}. O XP delas também conta para o nível.</p>`;
+  $("weekCard").innerHTML=`<h2>Missões da semana <span>${weeklyXP(viewWeek)} / ${state.weekTotal} XP <button class="edit" data-action="edit">Editar</button></span></h2>
+    <div class="missions">${(()=>{const wm=weeklyMap(viewWeek);return weeklyFor(viewWeek).map(m=>misBtn("week",m,b[m.id],notYet,null,false,wm[m.id])).join("");})()||'<p class="hint">Nenhuma missão semanal.</p>'}</div>
+    <p class="hint">Valem uma vez na semana de ${fmt(viewWeek)}. Elas dividem ${state.weekTotal} XP entre si, e esse XP também conta para o nível.</p>`;
 }
 function renderAttrs(){
   const a=attrXP();
@@ -693,7 +730,7 @@ document.addEventListener("click",e=>{
   const a=el.dataset.action;
   if(a==="toggle") toggle(el.dataset.kind,el.dataset.key);
   else if(a==="day"){selDay=el.dataset.day;renderToday();}
-  else if(a==="wk"){viewWeek=addDays(viewWeek,Number(el.dataset.d));selDay=null;render();}
+  else if(a==="wk"){viewWeek=addDays(viewWeek,Number(el.dataset.d));selDay=null;editDay=false;render();}
   else if(a==="gem") toggleCountDay(el.dataset.gem);
   else if(a==="sound"){state.sound=!state.sound;if(state.sound){audio();chime([659,784,988,1319],true);toast("Som ligado: plim ao marcar missão, melodia no dia cumprido e fanfarra ao subir de nível.");}save();render();}
   else if(a==="calm"){state.calm=!state.calm;save();render();}
@@ -705,10 +742,17 @@ document.addEventListener("click",e=>{
   else if(a==="ed-del"){syncGoal();draft[el.dataset.list].splice(Number(el.dataset.i),1);drawEditor();}
   else if(a==="ed-day"){syncGoal();const m=draft.daily[Number(el.dataset.i)],d=Number(el.dataset.d);m.days=m.days.includes(d)?m.days.filter(x=>x!==d):m.days.concat(d).sort();drawEditor();}
   else if(a==="ed-count"){syncGoal();const d=Number(el.dataset.d);draft.countDays=draft.countDays.includes(d)?draft.countDays.filter(x=>x!==d):draft.countDays.concat(d).sort();drawEditor();}
-  else if(a==="ed-reset"){draft=Object.assign(DEFAULT_MISSIONS(),{countDays:[1,2,3,4,6],goal:4});drawEditor();}
+  else if(a==="ed-reset"){draft=Object.assign(DEFAULT_MISSIONS(),{countDays:[1,2,3,4,6],goal:4,dayTotal:100,weekTotal:60});drawEditor();}
   else if(a==="ed-save") saveEditor(el.dataset.when);
   else if(a==="ed-confirm"){syncGoal();if(today()<START) saveEditor("today"); else {$("edFoot").innerHTML=edFootHTML(true);$("edFoot").querySelector("[data-when=monday]").focus();}}
   else if(a==="ed-back"){$("edFoot").innerHTML=edFootHTML(false);}
+  else if(a==="day-edit"){editDay=!editDay;renderToday();}
+  else if(a==="w-up"||a==="w-dn") changeWeight(el.dataset.key,a==="w-up"?1:-1);
+  else if(a==="skip") skipMission(el.dataset.key,true);
+  else if(a==="unskip") skipMission(el.dataset.key,false);
+  else if(a==="f-add") openFixedQuick();
+  else if(a==="fq-day"){const d=Number(el.dataset.d);fq.days=fq.days.includes(d)?fq.days.filter(x=>x!==d):fq.days.concat(d).sort();el.setAttribute("aria-pressed",fq.days.includes(d));}
+  else if(a==="fq-save") saveFixedQuick();
   else if(a==="x-add") openExtra();
   else if(a==="x-save") saveExtra();
   else if(a==="x-del"){const l=state.extras[selDay]||[];state.extras[selDay]=l.filter(m=>m.id!==el.dataset.key);if(!state.extras[selDay].length)delete state.extras[selDay];save();render();}
@@ -724,13 +768,14 @@ document.addEventListener("change",e=>{
   if(e.target.id==="rsFile"){const f=e.target.files&&e.target.files[0];if(f)f.text().then(t=>{$("rsText").value=t;});}
 });
 document.addEventListener("input",e=>{
-  const t=e.target; if(t.id==="edGoal"&&draft){draft.goal=Number(t.value)||1;const mp=$("edMeta");if(mp)mp.textContent=previewMeta();return;}
+  const t=e.target;
+  if(draft&&(t.id==="edGoal"||t.id==="edDay"||t.id==="edWeek")){const v=Number(t.value)||0;if(t.id==="edGoal")draft.goal=v||1;if(t.id==="edDay")draft.dayTotal=Math.max(10,v||10);if(t.id==="edWeek")draft.weekTotal=Math.max(0,v);refreshPreviews();return;}
   const f=t.dataset&&t.dataset.f; if(!f||!draft) return;
   const m=draft[t.dataset.list][Number(t.dataset.i)];
   if(f==="xp") m.xp=Math.max(1,Math.min(100,Number(t.value)||1));
   else if(f==="key") m.key=t.checked;
   else m[f]=t.value;
-  const mp=$("edMeta"); if(mp) mp.textContent=previewMeta();
+  refreshPreviews();
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
 
@@ -742,16 +787,17 @@ function toggle(kind,id){
   const dayBefore=countsDay(selDay);
   const m=findMission(kind,id); if(!m) return;
   let bag; if(kind==="day") bag=state.days[selDay]=state.days[selDay]||{}; else bag=state.weekly[viewWeek]=state.weekly[viewWeek]||{};
-  const on=!bag[id]; if(on) bag[id]={x:m.xp,a:m.attr||"Disciplina",k:kind==="day"&&!!m.key}; else delete bag[id];
+  const xpv=kind==="week"?weeklyMap(viewWeek)[id]:(xpMap(selDay)[id]!==undefined?xpMap(selDay)[id]:m.xp);
+  const on=!bag[id]; if(on) bag[id]={x:xpv,a:m.attr||"Disciplina",k:kind==="day"&&!!m.key}; else delete bag[id];
   const ups=on?checkLevelUp():[];
   save(); render();
   if(!on) return;
-  const btn=$("m-"+kind+"-"+id); if(btn){btn.classList.add("pop");floatXP(btn,"+"+m.xp+" XP");const r=btn.getBoundingClientRect();burst(r.left+30,r.top+r.height/2,10,["#e8c26a","#fff3c9"]);}
+  const btn=$("m-"+kind+"-"+id); if(btn){btn.classList.add("pop");floatXP(btn,"+"+xpv+" XP");const r=btn.getBoundingClientRect();burst(r.left+30,r.top+r.height/2,10,["#e8c26a","#fff3c9"]);}
   castAvatar(); chime([784,1175]);
   const dayDone=kind==="day"&&!dayBefore&&countsDay(selDay);
   if(dayDone) setTimeout(()=>{const g=document.querySelector('[data-gem="'+selDay+'"]');if(g){g.classList.add("lit");const r=g.getBoundingClientRect();burst(r.left+r.width/2,r.top+12,34,["#e8c26a","#fff3c9","#7fe0cf","#ff9db1"]);}
       chime([659,784,988,1319]);toast("Dia cumprido! "+state.rewards.dia+" liberado.");},350);
-  else if(!ups.length) toast("+"+m.xp+" XP em "+(m.attr||"Disciplina")+". Faltam "+Math.max(metaXP()-levelProgress(),0)+" XP para o próximo nível.");
+  else if(!ups.length) toast("+"+xpv+" XP em "+(m.attr||"Disciplina")+". Faltam "+Math.max(metaXP()-levelProgress(),0)+" XP para o próximo nível.");
   if(ups.length) setTimeout(()=>ceremony(ups),dayDone?1600:700);
 }
 function toggleCountDay(s){
@@ -762,6 +808,50 @@ function toggleCountDay(s){
   const ups=checkLevelUp(); save(); render();
   toast(WD[d]+(on?" agora é dia livre.":" agora conta.")+" Meta do nível: "+metaXP()+" XP.");
   if(ups.length) setTimeout(()=>ceremony(ups),700);
+}
+function afterChange(from,msg){
+  resync(from); const ups=checkLevelUp(); save(); render(); if(msg) toast(msg);
+  if(ups.length) setTimeout(()=>ceremony(ups),700);
+}
+function versionedEdit(list,id,eff,patch){
+  const o=list.find(m=>m.id===id&&!m.end&&alive(m,eff))||list.find(m=>m.id===id&&!m.end); if(!o) return;
+  if(today()<START||(o.start&&o.start>=eff)){Object.assign(o,patch);return;}
+  o.end=eff; list.splice(list.indexOf(o)+1,0,Object.assign(clone(o),patch,{start:eff,end:undefined}));
+  list.forEach(m=>{if(m.end===undefined)delete m.end;});
+}
+function changeWeight(id,d){
+  const eff=today()<START?START:(selDay>today()?selDay:today());
+  const m=missionsFor(selDay).find(x=>x.id===id); if(!m) return;
+  const nw=Math.max(1,Math.min(100,(Number(m.xp)||1)+d)); if(nw===m.xp) return;
+  versionedEdit(state.missions.daily,id,eff,{xp:nw});
+  afterChange(eff,null);
+}
+function skipMission(id,on){
+  const l=state.skips[selDay]||[];
+  state.skips[selDay]=on?l.concat(id):l.filter(x=>x!==id);
+  if(!state.skips[selDay].length) delete state.skips[selDay];
+  if(on&&state.days[selDay]) delete state.days[selDay][id];
+  afterChange(selDay,on?"Missão pulada só em "+fmt(selDay)+". O XP dela foi para as outras missões do dia.":"Missão de volta neste dia.");
+}
+let fq=null;
+function openFixedQuick(){
+  fq={days:[parse(selDay).getDay()]};
+  const attrs=ATTRS.map(k=>`<option>${k}</option>`).join("");
+  openModal(`<h3 id="mTitle">Nova missão fixa</h3><p class="hint">Ela se repete nos dias escolhidos a partir de ${selDay>today()?fmt(selDay):"hoje"}. O peso define quanto dos ${state.dayTotal} XP do dia ela leva.</p>
+    <div class="ed" style="text-align:left"><div class="r"><label>Nome<input id="fqName" placeholder="Ex.: revisar flashcards de SQL"></label><label>Peso<input id="fqW" type="number" min="1" max="100" value="10"></label></div>
+    <div class="r2"><label>Atributo<select id="fqAttr">${attrs}</select></label><span></span></div>
+    <div><span class="eyebrow" style="font-size:13px">Dias</span><div class="dtog">${[1,2,3,4,5,6,0].map(d=>`<button data-action="fq-day" data-d="${d}" aria-pressed="${fq.days.includes(d)}">${WD[d]}</button>`).join("")}</div></div></div>
+    <div class="row"><button class="btn ghost" data-action="modal-x">Cancelar</button><button class="btn" data-action="fq-save">Criar missão fixa</button></div>`);
+  $("fqAttr").value="Disciplina";
+}
+function saveFixedQuick(){
+  const name=$("fqName").value.trim(); if(!name){toast("Dê um nome para a missão.");return;}
+  if(!fq.days.length){toast("Escolha pelo menos um dia.");return;}
+  const eff=today()<START?START:(selDay>today()?selDay:today());
+  const m={id:newId(),name,spell:"",attr:$("fqAttr").value,xp:Math.max(1,Math.min(100,Number($("fqW").value)||10)),ic:"star",key:false,days:fq.days.slice()};
+  if(today()>=START) m.start=eff;
+  state.missions.daily.push(m); fq=null; closeModal();
+  afterChange(eff,"Missão fixa criada. O XP do dia foi redistribuído.");
 }
 function checkLevelUp(){
   const ups=[];
@@ -787,7 +877,7 @@ function openCustom(){
 /* ---------- Missão extra (só de um dia) ---------- */
 function openExtra(){
   const attrs=ATTRS.map(k=>`<option>${k}</option>`).join("");
-  openModal(`<h3 id="mTitle">Missão extra</h3><p class="hint">Vale só para ${selDay===today()?"hoje":fmt(selDay)}. Rende XP, mas não cumpre o dia sozinha.</p>
+  openModal(`<h3 id="mTitle">Missão extra</h3><p class="hint">Vale só para ${selDay===today()?"hoje":fmt(selDay)}. O XP dela é à parte: soma por cima dos ${state.dayTotal} XP do dia e não cumpre o dia sozinha.</p>
     <div class="ed" style="text-align:left"><div class="r"><label>Nome<input id="xName" placeholder="Ex.: ler um artigo sobre churn"></label><label>XP<input id="xXp" type="number" min="1" max="100" value="10"></label></div>
     <div class="r2"><label>Atributo<select id="xAttr">${attrs}</select></label><span></span></div></div>
     <div class="row"><button class="btn ghost" data-action="modal-x">Cancelar</button><button class="btn" data-action="x-save">Criar missão</button></div>`);
@@ -803,24 +893,32 @@ function saveExtra(){
 /* ---------- Editor de missões fixas ---------- */
 let draft=null;
 const newId=()=>"m"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-function syncGoal(){const g=document.getElementById("edGoal"); if(g&&draft) draft.goal=Number(g.value)||draft.goal;}
+function syncGoal(){if(!draft)return;const g=$("edGoal"),d=$("edDay"),w=$("edWeek");if(g)draft.goal=Number(g.value)||draft.goal;if(d)draft.dayTotal=Math.max(10,Number(d.value)||draft.dayTotal);if(w)draft.weekTotal=Math.max(0,Number(w.value)||0);}
 const effToday=()=>today()<START?START:today();
 const effMonday=()=>today()<START?START:nextMonday(today());
 function previewMeta(){
   if(!draft) return "";
   const r=refDay(), vals=draft.countDays.map(wd=>draft.daily.filter(m=>m.days.includes(wd)&&(!m.start||m.start<=r)).reduce((a,m)=>a+Number(m.xp||0),0));
-  const v=vals.filter(x=>x>0), avg=v.length?v.reduce((a,b)=>a+b,0)/v.length:50, g=Math.max(1,Math.min(draft.countDays.length||1,Number(draft.goal)||1));
-  return Math.max(10,Math.round(g*avg/10)*10)+" XP por nível ("+g+" dias × "+Math.round(avg)+" XP)";
+  const g=Math.max(1,Math.min(draft.countDays.length||1,Number(draft.goal)||1));
+  return Math.max(10,g*draft.dayTotal)+" XP por nível ("+g+" dias × "+draft.dayTotal+" XP)";
 }
 function openEditor(){
-  draft={daily:clone(state.missions.daily.filter(m=>!m.end)),weekly:clone(state.missions.weekly.filter(m=>!m.end)),countDays:state.countDays.slice(),goal:state.goal};
+  draft={daily:clone(state.missions.daily.filter(m=>!m.end)),weekly:clone(state.missions.weekly.filter(m=>!m.end)),countDays:state.countDays.slice(),goal:state.goal,dayTotal:state.dayTotal,weekTotal:state.weekTotal};
   drawEditor();
 }
+function weightPreview(list,m){
+  if(!draft) return "";
+  if(list==="weekly"){const tot=draft.weekly.reduce((a,x)=>a+Math.max(1,Number(x.xp)||1),0);return "≈ "+Math.round(Math.max(1,Number(m.xp)||1)/tot*draft.weekTotal)+" XP na semana";}
+  const vals=m.days.map(wd=>{const same=draft.daily.filter(x=>x.days.includes(wd));const tot=same.reduce((a,x)=>a+Math.max(1,Number(x.xp)||1),0);return Math.round(Math.max(1,Number(m.xp)||1)/tot*draft.dayTotal);});
+  if(!vals.length) return "Sem dias escolhidos";
+  const mn=Math.min(...vals), mx=Math.max(...vals); return "≈ "+(mn===mx?mn:mn+" a "+mx)+" XP por dia";
+}
+function refreshPreviews(){document.querySelectorAll(".wprev").forEach(el=>{const [l,i]=el.dataset.prev.split("-");const m=draft&&draft[l][Number(i)];if(m)el.textContent=weightPreview(l,m);});const mp=$("edMeta");if(mp)mp.textContent=previewMeta();}
 function edCard(list,m,i){
   const icons=Object.keys(ICONS).map(k=>`<option value="${k}" ${m.ic===k?"selected":""}>${ICONS[k][0]}</option>`).join("");
   const attrs=ATTRS.map(k=>`<option ${m.attr===k?"selected":""}>${k}</option>`).join("");
   const base=`data-list="${list}" data-i="${i}"`;
-  let h=`<div class="ed">${m.start&&m.start>today()?`<span class="tag" style="justify-self:start">começa em ${fmt(m.start)}</span>`:""}<div class="r"><label>Nome<input ${base} data-f="name" value="${esc(m.name)}"></label><label>XP<input type="number" min="1" max="100" ${base} data-f="xp" value="${m.xp}"></label></div>
+  let h=`<div class="ed">${m.start&&m.start>today()?`<span class="tag" style="justify-self:start">começa em ${fmt(m.start)}</span>`:""}<div class="r"><label>Nome<input ${base} data-f="name" value="${esc(m.name)}"></label><label>Peso<input type="number" min="1" max="100" ${base} data-f="xp" value="${m.xp}"></label></div><span class="hint wprev" data-prev="${list}-${i}">${weightPreview(list,m)}</span>
     <div class="r2"><label>Nome mágico (opcional)<input ${base} data-f="spell" value="${esc(m.spell||"")}"></label><label>Atributo<select ${base} data-f="attr">${attrs}</select></label></div>
     <div class="r2"><label>Ícone<select ${base} data-f="ic">${icons}</select></label>`;
   if(list==="daily") h+=`<label class="check"><input type="checkbox" ${base} data-f="key" ${m.key?"checked":""}> Cumpre o dia</label>`; else h+=`<span></span>`;
@@ -835,8 +933,9 @@ function drawEditor(){
     <p class="hint">Missões fixas se repetem nos dias escolhidos. Para algo de um dia só, use "+ Missão extra" no card do dia. Os dias que já passaram nunca mudam: o que você marcou continua salvo com o XP da época.</p>
     <p class="eyebrow">Meta do nível</p>
     <div class="dtog">${[1,2,3,4,5,6,0].map(d=>`<button data-action="ed-count" data-d="${d}" aria-pressed="${draft.countDays.includes(d)}">${WD[d]}: ${draft.countDays.includes(d)?"conta":"livre"}</button>`).join("")}</div>
-    <div class="ed"><div class="r"><label>Meta de dias completos por nível<input type="number" min="1" max="7" id="edGoal" value="${draft.goal}"></label><span></span></div>
-    <p class="hint">Meta de XP calculada: <b id="edMeta">${previewMeta()}</b>. Ela muda junto quando você muda o XP das missões, os dias que contam ou a meta de dias. Se você escolher "a partir de segunda", a meta nova entra na segunda, junto com as missões.</p></div>
+    <div class="ed"><div class="r2"><label>XP de um dia completo<input type="number" min="10" max="1000" id="edDay" value="${draft.dayTotal}"></label><label>XP das missões da semana<input type="number" min="0" max="1000" id="edWeek" value="${draft.weekTotal}"></label></div>
+    <div class="r"><label>Meta de dias completos por nível<input type="number" min="1" max="7" id="edGoal" value="${draft.goal}"></label><span></span></div>
+    <p class="hint">Meta de XP calculada: <b id="edMeta">${previewMeta()}</b>. O peso de cada missão só decide como o XP do dia é dividido. A meta muda quando você muda o XP de um dia completo ou a meta de dias.</p></div>
     <p class="eyebrow">Missões fixas do dia</p><div class="edlist">${draft.daily.map((m,i)=>edCard("daily",m,i)).join("")}</div>
     <div class="row" style="justify-content:flex-start"><button class="btn ghost small" data-action="ed-add" data-list="daily">+ Missão fixa</button></div>
     <p class="eyebrow">Missões da semana</p><div class="edlist">${draft.weekly.map((m,i)=>edCard("weekly",m,i)).join("")}</div>
@@ -856,7 +955,7 @@ function applyList(orig,dlist,eff){
   for(const o of orig){ if(o.end) continue;
     const d=dlist.find(x=>x.id===o.id);
     if(!d){ if(o.start&&o.start>=eff){out.splice(out.indexOf(o),1);} else o.end=eff; continue; }
-    if(!sameM(o,d)){ if(o.start&&o.start>=eff){Object.assign(o,d,{start:o.start});} else { o.end=eff; out.splice(out.indexOf(o)+1,0,Object.assign(clone(d),{id:newId(),start:eff,end:undefined})); } }
+    if(!sameM(o,d)){ if(o.start&&o.start>=eff){Object.assign(o,d,{start:o.start});} else { o.end=eff; out.splice(out.indexOf(o)+1,0,Object.assign(clone(d),{id:o.id,start:eff,end:undefined})); } }
   }
   for(const d of dlist) if(!orig.some(o=>o.id===d.id)) out.push(Object.assign(clone(d),{start:eff}));
   return out.map(m=>{const c=Object.assign({},m);if(c.end===undefined)delete c.end;return c;});
@@ -867,16 +966,18 @@ function saveEditor(when){
   clean(draft.daily);clean(draft.weekly);
   if(!draft.countDays.length){toast("Escolha pelo menos um dia que conta.");return;}
   state.countDays=draft.countDays.slice().sort(); state.goal=Math.max(1,Math.min(state.countDays.length,Number(draft.goal)||1));
+  state.dayTotal=Math.max(10,Math.min(1000,Number(draft.dayTotal)||100)); state.weekTotal=Math.max(0,Math.min(1000,Number(draft.weekTotal)||0));
   let msg;
   if(today()<START){
     const keep=l=>l.filter(m=>m.end);
     state.missions={daily:keep(state.missions.daily).concat(clone(draft.daily)),weekly:keep(state.missions.weekly).concat(clone(draft.weekly))};
-    msg="Mudanças salvas.";
+    msg="Mudanças salvas."; resync(START);
   } else {
     const eff=when==="monday"?effMonday():effToday();
     const effW=when==="monday"?eff:weekStartOf(eff);
     state.missions={daily:applyList(state.missions.daily,draft.daily,eff),weekly:applyList(state.missions.weekly,draft.weekly,effW)};
     msg=when==="monday"?"Mudanças nas missões agendadas para segunda, "+fmt(eff)+".":"Mudanças valendo a partir de hoje.";
+    resync(when==="monday"?eff:effToday());
   }
   draft=null; const ups=checkLevelUp(); save(); closeModal(); render();
   toast(msg+" Meta do nível: "+metaXP()+" XP.");
