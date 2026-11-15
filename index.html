@@ -594,8 +594,7 @@ function renderInfo(){
     <div class="prog"><div class="lab"><span>${state.done?"Jornada completa":"XP"}</span><b><span id="xpnum">${Math.min(prog,meta)}</span> / ${meta}</b></div>
       <div class="pbar" aria-hidden="true"><i style="width:${state.done?100:Math.min(prog/meta*100,100)}%"></i></div></div>
     <div class="stats"><span class="coins">${coinSVG}<b>${coins()}</b> moedas</span><span class="muted">${totalXP()} XP no total</span></div>
-    <p class="muted">${state.done?`Você é a ${esc(LVS()[7].title)}.`:`Faltam <b style="color:var(--parchment)">${Math.max(meta-prog,0)} XP</b> para virar ${esc(nx.title)} e ganhar ${esc(nx.unlock)}.`}</p>
-    <p class="muted small">Rotina deste nível: ${esc(lv.change)} · acordar ${esc(lv.wake)} · sessão de ${esc(lv.session)}</p>`;
+    <p class="muted">${state.done?`Você é a ${esc(LVS()[7].title)}.`:`Faltam <b style="color:var(--parchment)">${Math.max(meta-prog,0)} XP</b> para virar ${esc(nx.title)} e ganhar ${esc(nx.unlock)}.`}</p>`;
 }
 function taskRow(kind,t,checked,xp,disabled,time){
   return `<div class="task ${checked?"on":""}" id="r-${kind}-${esc(t.id)}">
