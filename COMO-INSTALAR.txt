@@ -1,0 +1,11 @@
+JORNADA DA MAGA - como instalar
+
+1. Crie um repositório público no GitHub chamado jornada-maga.
+2. Clique em "Add file" > "Upload files", arraste os arquivos desta pasta e clique em "Commit changes".
+3. Vá em Settings > Pages. Em "Source", escolha "Deploy from a branch", branch "main", pasta "/ (root)" e clique em Save.
+4. Depois de 1 a 2 minutos, o app fica em: https://SEU-USUARIO.github.io/jornada-maga/
+5. Computador (Chrome): abra o endereço e clique no ícone de instalar na barra de endereço.
+   Celular (Chrome): abra o endereço, toque nos três pontinhos e em "Instalar app" ou "Adicionar à tela inicial".
+
+Seus registros ficam só no aparelho (não vão para o GitHub).
+Baixe um backup todo sábado. Para levar o progresso para outro aparelho: "Baixar backup" num, "Restaurar backup" no outro.
