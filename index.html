@@ -228,6 +228,48 @@ button{font:inherit;color:inherit}
 
 .calm *,.calm *::before,.calm *::after{animation:none!important;transition:none!important}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* ---- versão simples ---- */
+.cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start}
+@media (max-width:980px){.cols{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.cols{grid-template-columns:1fr}}
+.tasks{display:grid;gap:8px}
+.task{display:flex;align-items:center;gap:10px;padding:10px;border-radius:14px;background:var(--night-2);border:1px solid rgba(168,159,191,.2);transition:border-color .2s}
+.task.on{border-color:rgba(232,194,106,.5)}
+.task.on .tname b{text-decoration:line-through;opacity:.6}
+.task.pop{animation:pop .45s ease-out}
+.chk{flex:0 0 42px;height:42px;border-radius:12px;border:2px solid var(--gold);background:transparent;color:var(--ink);font-weight:800;font-size:20px;cursor:pointer;transition:background .2s, box-shadow .2s}
+.chk:hover{background:rgba(232,194,106,.15)}
+.chk[aria-pressed="true"]{background:var(--gold);box-shadow:0 0 14px rgba(232,194,106,.6)}
+.tname{flex:1;display:grid;min-width:0}
+.tname b{font-weight:700;overflow-wrap:anywhere}
+.tname small{color:var(--mist);font-size:13px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.pen{flex:0 0 36px;height:36px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--mist);cursor:pointer;display:grid;place-items:center}
+.pen:hover{color:var(--gold);border-color:var(--gold)}
+.pen svg{width:18px;height:18px}
+.add input{width:100%;background:var(--ink);border:1px dashed rgba(232,194,106,.45);border-radius:12px;padding:11px 12px;color:var(--parchment);font:inherit}
+.add input:focus{border-style:solid;border-color:var(--arcane);outline:none}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;padding:8px;border-radius:10px;border:1px solid var(--line);background:transparent;cursor:pointer;font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--night-2);border-color:var(--gold);color:var(--gold)}
+.coin{width:16px;height:16px;vertical-align:-3px;flex:0 0 auto}
+.coins{display:inline-flex;align-items:center;gap:5px;font-family:var(--body);color:var(--gold)}
+.stats{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.buy{display:inline-flex;align-items:center;gap:5px;padding:8px 12px;border-radius:10px;border:1px solid var(--gold);background:linear-gradient(120deg,var(--gold),#f6dc9a);color:var(--ink);font-weight:700;cursor:pointer}
+.buy:disabled{opacity:.4;cursor:not-allowed}
+.linkbtn{background:none;border:0;color:var(--arcane);cursor:pointer;padding:0;font-size:14px;justify-self:start;text-align:left}
+.small{font-size:13px}
+.eyebrow.small{font-size:13px}
+.stage{min-height:330px}
+.sheet .journey{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:620px){.sheet .journey{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.hrow{grid-template-columns:auto 1fr auto}
+.tm{background:rgba(127,224,207,.15);color:var(--arcane);border-radius:6px;padding:0 6px;margin-right:4px;font-variant-numeric:tabular-nums}
+.rtrow{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;background:var(--night-2);border:1px solid rgba(168,159,191,.2)}
+.rtrow:not(.in){opacity:.7}
+.rttime{background:var(--ink);border:1px solid rgba(168,159,191,.3);border-radius:10px;padding:7px 8px;color:var(--parchment);font:inherit;color-scheme:dark}
+.rtadd{display:flex;gap:8px}.rtadd input[name=t]{width:auto;flex:0 0 auto;color-scheme:dark}
+.seg.wrap{flex-wrap:wrap}.seg.wrap button{flex:1 0 auto;min-width:48px}
 </style>
 </head>
 <body>
@@ -237,11 +279,9 @@ button{font:inherit;color:inherit}
     <h1 class="brand">Grimório da Bia<small>Jornada da Maga dos Dados</small></h1>
     <div class="tools">
       <span class="save" id="save" role="status">Salvo neste aparelho ✦</span>
-      <button class="chip" id="soundBtn" data-action="sound" aria-pressed="false">Som desligado</button>
-      <button class="chip" id="calmBtn" data-action="calm" aria-pressed="false">Modo calmo</button>
+      <button class="chip" data-action="menu">☰ Menu</button>
     </div>
   </header>
-
   <section class="hero">
     <div class="stage" id="stage">
       <svg class="ring" viewBox="0 0 200 200" aria-hidden="true">
@@ -258,43 +298,19 @@ button{font:inherit;color:inherit}
     </div>
     <div class="info" id="info"></div>
   </section>
-
-  <section class="grid">
-    <article class="card" id="todayCard"></article>
-    <article class="card" id="weekCard"></article>
-    <article class="card" id="attrCard"></article>
+  <section class="cols">
+    <article class="card" id="dailyCard"></article>
+    <article class="card" id="todoCard"></article>
     <article class="card" id="rewardCard"></article>
   </section>
-
   <article class="card" id="journeyCard"></article>
-
-  <article class="card" id="histCard"></article>
-
-  <article class="card">
-    <h2>Regras do grimório</h2>
-    <ol class="rules">
-      <li>Marque as missões no fechamento do dia. O XP soma na hora.</li>
-      <li>Cada dia completo vale um total fixo de XP (100 no padrão). O peso de cada missão decide como esse total é dividido: se uma sobe, as outras descem. A meta do nível é meta de dias × XP de um dia completo.</li>
-      <li>Bateu a meta, o nível desbloqueia na hora. O XP que sobrar passa para o próximo nível, e você nunca perde um nível conquistado.</li>
-      <li>A recompensa e o visual vêm na hora. A mudança na rotina do novo nível começa na segunda seguinte, para nada mudar de surpresa no meio da semana.</li>
-      <li>Missões fixas se repetem; missões extras valem só para um dia e somam por cima. Em "Editar este dia" você muda o peso, pula uma missão só naquele dia ou cria uma fixa nova. Toque nos dias da semana para escolher quais contam e quais são livres.</li>
-      <li>Toda recompensa é fixa e combinada antes. Nada de sorteio.</li>
-    </ol>
-  </article>
 </div>
-
 <div class="toast" id="toast" aria-live="polite"></div>
-
-<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
-  <div class="sheet" id="sheet"></div>
-</div>
-
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle"><div class="sheet" id="sheet"></div></div>
 <script>
 (function(){
 "use strict";
 
-/* ---------- Dados da jornada ---------- */
-const START = "2026-11-16";
 const LEVELS = [
   {n:1,title:"Aprendiz de Dados",change:"Começar a rotina e anotar o sono",wake:"11h",sleep:"3h",session:"2h",phase:"SQL",unlock:"túnica de aprendiz e varinha de madeira"},
   {n:2,title:"Exploradora de Tabelas",change:"Acordar 30 min mais cedo",wake:"10h30",sleep:"2h30",session:"2h",phase:"SQL",unlock:"chapéu de maga e manto azul"},
@@ -306,51 +322,35 @@ const LEVELS = [
   {n:8,title:"Arquimaga Lançada",change:"Lançamento do projeto (chefão final)",wake:"9h",sleep:"1h",session:"3h",phase:"Power BI e publicação",unlock:"manto dourado, asas de luz e coroa de estrelas"}
 ];
 
-const ICONS = {
-  broom:['Vassoura','<path d="M15 3l-4 9"/><path d="M6 12h8l2 8H4z"/><path d="M8 15v4M11 15v4M14 15v4"/>'],
-  sun:['Sol','<circle cx="12" cy="13" r="4"/><path d="M12 4v2M5 7l1.4 1.4M19 7l-1.4 1.4M3 13h2M19 13h2M3 20h18"/>'],
-  scroll:['Pergaminho','<rect x="5" y="4" width="14" height="16" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/>'],
-  speech:['Balão','<path d="M4 5h16v10H9l-5 4z"/><path d="M8 10h8"/>'],
-  crystal:['Cristal','<path d="M12 2l6 7-6 13-6-13z"/><path d="M6 9h12"/>'],
-  seal:['Selo','<circle cx="12" cy="12" r="8"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/>'],
-  letter:['Carta','<rect x="3" y="6" width="18" height="12" rx="1.5"/><path d="M3 7l9 7 9-7"/>'],
-  case:['Maleta','<rect x="4" y="8" width="16" height="11" rx="1.5"/><path d="M9 8V5h6v3M4 13h16"/>'],
-  eye:['Olho','<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'],
-  tower:['Torre','<path d="M6 21V9l6-5 6 5v12z"/><path d="M10 21v-5h4v5M10 11h4"/>'],
-  book:['Livro','<path d="M4 5h6a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H4z"/><path d="M20 5h-6a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h6z"/>'],
-  star:['Estrela','<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>'],
-  heart:['Coração','<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>'],
-  moon:['Lua','<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>']
-};
-const icon = k => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[k]||ICONS.star)[1]+'</svg>';
-const ATTRS = ["Dados","Idiomas","Conhecimento","Disciplina","Energia","Ordem","Carreira"];
-const WD = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
-const WAKE_NAME = "Acordei no horário";
-
-const DEFAULT_MISSIONS = () => ({
-  daily:[
-    {id:"limpeza",name:"Varrer e passar pano",spell:"Feitiço da Ordem",attr:"Ordem",xp:5,ic:"broom",key:false,days:[0,1,2,3,4,5,6]},
-    {id:"acordar",name:WAKE_NAME,spell:"Despertar da Aurora",attr:"Energia",xp:10,ic:"sun",key:false,days:[0,1,2,3,4,5,6]},
-    {id:"faculdade",name:"Faculdade (30 min)",spell:"Pergaminho da Academia",attr:"Conhecimento",xp:10,ic:"scroll",key:false,days:[1,2,3,4,5]},
-    {id:"ingles",name:"Inglês ativo (1h)",spell:"Runas de Além-Mar",attr:"Idiomas",xp:15,ic:"speech",key:false,days:[0,1,2,3,4,5,6]},
-    {id:"sessao",name:"Sessão de dados ou meta mínima",spell:"Ritual dos Dados",attr:"Dados",xp:30,ic:"crystal",key:true,days:[1,2,3,4]},
-    {id:"sabado",name:"Bloco de sábado",spell:"Grande Ritual de Sábado",attr:"Dados",xp:30,ic:"crystal",key:true,days:[6]},
-    {id:"fechamento",name:"Fechamento",spell:"Selo do Dia",attr:"Disciplina",xp:10,ic:"seal",key:false,days:[1,2,3,4]}
-  ],
-  weekly:[
-    {id:"posts",name:"3 posts do LinkedIn agendados",spell:"Mensagens ao Reino",attr:"Carreira",xp:20,ic:"letter"},
-    {id:"candidaturas",name:"Candidaturas enviadas",spell:"Cartas às Guildas",attr:"Carreira",xp:20,ic:"case"},
-    {id:"revisao",name:"Revisão de sábado",spell:"Leitura do Oráculo",attr:"Disciplina",xp:10,ic:"eye"},
-    {id:"arrumacao",name:"Arrumação do quarto (1h)",spell:"Purificação da Torre",attr:"Ordem",xp:10,ic:"tower"}
-  ]
-});
 const SKINS = ["#f6dcc4","#efc9a8","#e2ae86","#b77a52","#7a4a2c"];
 const HAIRS = ["#231814","#3a281e","#6e4327","#b9532f","#e3c27a"];
 const LIPS = "#d4848c";
 
-const DEFAULT = () => ({v:5,dayTotal:100,weekTotal:60,skips:{},level:1,levelBase:0,levelFrom:{"1":"2000-01-01"},days:{},weekly:{},history:[],missions:DEFAULT_MISSIONS(),
-  rewards:{dia:"2 episódios de Brooklyn Nine-Nine",nivel:"A definir",final:"A definir"},
-  look:{skin:1,hair:0},sound:false,calm:false,done:false,countDays:[1,2,3,4,6],goal:4,extras:{},levels:JSON.parse(JSON.stringify(LEVELS))});
+/* ---------- Dados ---------- */
+const DIFF = {easy:{n:"Fácil",x:5,w:1},med:{n:"Médio",x:10,w:2},hard:{n:"Difícil",x:20,w:4}};
+const coinsOf = x => Math.max(1,Math.round(x/5));
+const WD = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+const ALL = [0,1,2,3,4,5,6];
+const WAKE_NAME = "Acordar no horário";
+const DEFAULT_DAILIES = () => [
+  {id:"limpeza",name:"Varrer e passar pano",diff:"easy",days:ALL.slice()},
+  {id:"acordar",name:WAKE_NAME,diff:"med",days:ALL.slice()},
+  {id:"faculdade",name:"Faculdade (30 min)",diff:"med",days:[1,2,3,4,5]},
+  {id:"ingles",name:"Inglês ativo (1h)",diff:"med",days:ALL.slice()},
+  {id:"sessao",name:"Sessão de dados (ou meta mínima)",diff:"hard",days:[1,2,3,4]},
+  {id:"fechamento",name:"Fechamento: commit, diário e check",diff:"easy",days:[1,2,3,4]},
+  {id:"sabado",name:"Bloco de sábado",diff:"hard",days:[6]},
+  {id:"revisao",name:"Revisão de sábado",diff:"med",days:[6]},
+  {id:"posts",name:"Agendar os posts do LinkedIn",diff:"med",days:[6]},
+  {id:"candidaturas",name:"Candidaturas",diff:"med",days:[6]},
+  {id:"arrumacao",name:"Arrumação do quarto (1h)",diff:"med",days:[0]}
+];
+const DEFAULT_REWARDS = () => [
+  {id:"b99",name:"2 episódios de Brooklyn Nine-Nine",cost:10},
+  {id:"grande",name:"Recompensa grande (toque no lápis para editar)",cost:80}
+];
+const DEFAULT = () => ({v:6,distribute:true,dayTotal:100,level:1,levelBase:0,meta:400,done:false,dailies:DEFAULT_DAILIES(),todos:[],rewards:DEFAULT_REWARDS(),
+  log:{},purchases:[],history:[],look:{skin:1,hair:0},sound:false,calm:false,levels:JSON.parse(JSON.stringify(LEVELS))});
 
 /* ---------- Datas ---------- */
 const pad = n => String(n).padStart(2,"0");
@@ -359,96 +359,71 @@ const parse = s => {const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1
 const addDays = (s,n) => {const d=parse(s);d.setDate(d.getDate()+n);return iso(d);};
 const fmt = s => {const d=parse(s);return pad(d.getDate())+"/"+pad(d.getMonth()+1);};
 const today = () => iso(new Date());
-const weekOf = s => Array.from({length:7},(_,i)=>addDays(s,i));
-const toMin = t => {const m=t.match(/(\d+)h(\d+)?/);return m?Number(m[1])*60+Number(m[2]||0):0;};
+const toMin = t => {const m=String(t).match(/(\d+)h(\d+)?/);return m?Number(m[1])*60+Number(m[2]||0):0;};
 const fromMin = m => Math.floor(m/60)+"h"+(m%60?pad(m%60):"");
 const clone = o => JSON.parse(JSON.stringify(o));
-const nextMonday = s => {let d=addDays(s,1);while(parse(d).getDay()!==1)d=addDays(d,1);return d;};
-const weekStartOf = s => addDays(s,-((parse(s).getDay()+6)%7));
+const newId = () => "t"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 
 /* ---------- Estado ---------- */
 let state = DEFAULT();
-const OLD = {limpeza:[5,"Ordem",0],acordar:[10,"Energia",0],faculdade:[10,"Conhecimento",0],ingles:[15,"Idiomas",0],sessao:[30,"Dados",1],sabado:[30,"Dados",1],fechamento:[10,"Disciplina",0],posts:[20,"Carreira",0],candidaturas:[20,"Carreira",0],revisao:[10,"Disciplina",0],arrumacao:[10,"Ordem",0]};
-function fixBag(b){const o={};for(const k in (b||{})){const v=b[k];if(v===true&&OLD[k])o[k]={x:OLD[k][0],a:OLD[k][1],k:!!OLD[k][2]};else if(v&&typeof v==="object"&&typeof v.x==="number")o[k]={x:v.x,a:String(v.a||"Disciplina"),k:!!v.k};}return o;}
-const sumBags = o => Object.values(o||{}).reduce((a,b)=>a+Object.values(b||{}).reduce((x,v)=>x+(v&&v.x||0),0),0);
 function migrate(d){
   d=d||{};
+  if(!(d.v>=6)){ /* versões antigas: começa limpo, guardando nível, aparência e jornada */
+    const s=DEFAULT();
+    s.level=Math.max(1,Math.min(8,Number(d.level)||1)); s.done=!!d.done;
+    if(d.look) s.look=Object.assign(s.look,d.look);
+    s.sound=!!d.sound; s.calm=!!d.calm;
+    if(Array.isArray(d.levels)&&d.levels.length===8) s.levels=d.levels;
+    d=s;
+  }
   const s=Object.assign(DEFAULT(),d);
-  s.rewards=Object.assign(DEFAULT().rewards,s.rewards||{});
   s.look=Object.assign({skin:1,hair:0},s.look||{});
-  if(!s.missions||!Array.isArray(s.missions.daily)||!Array.isArray(s.missions.weekly)) s.missions=DEFAULT_MISSIONS();
-  const days={};for(const k in (s.days||{}))days[k]=fixBag(s.days[k]);s.days=days;
-  const wk={};for(const k in (s.weekly||{}))wk[k]=fixBag(s.weekly[k]);s.weekly=wk;
-  if(!s.extras||typeof s.extras!=="object") s.extras={};
+  ["dailies","todos","rewards","purchases","history"].forEach(k=>{if(!Array.isArray(s[k]))s[k]=DEFAULT()[k];});
+  if(!s.log||typeof s.log!=="object") s.log={};
+  s.meta=Math.max(50,Math.min(5000,Number(s.meta)||400));
   if(!Array.isArray(s.levels)||s.levels.length!==8) s.levels=clone(LEVELS);
   s.levels=s.levels.map((l,i)=>Object.assign({},LEVELS[i],l,{n:i+1,unlock:LEVELS[i].unlock}));
-  if(!(d.v>=4)){ /* versões antigas: o nível passa a ser por XP */
-    const r=Array.isArray(d.rules)&&d.rules.length?d.rules[d.rules.length-1]:null;
-    s.countDays=r?r.countDays:(Array.isArray(d.countDays)?d.countDays:[1,2,3,4,6]);
-    s.goal=r?r.goal:(Number(d.goal)||4);
-    s.levelBase=(s.level||1)===1?0:sumBags(s.days)+sumBags(s.weekly);
-    s.levelFrom={"1":"2000-01-01"}; for(let n=2;n<=(s.level||1);n++) s.levelFrom[n]="2000-01-01";
-    s.history=[];
-  }
-  if(!Array.isArray(s.countDays)||!s.countDays.length) s.countDays=[1,2,3,4,6];
-  s.goal=Math.max(1,Math.min(s.countDays.length,Number(s.goal)||4));
-  if(!s.levelFrom||typeof s.levelFrom!=="object") s.levelFrom={"1":"2000-01-01"};
-  s.dayTotal=Math.max(10,Math.min(1000,Number(s.dayTotal)||100)); s.weekTotal=Math.max(0,Math.min(1000,Number(s.weekTotal)||60));
-  if(!s.skips||typeof s.skips!=="object") s.skips={};
-  if(!Array.isArray(s.history)) s.history=[];
-  delete s.rules; delete s["level"+"Start"];
-  s.v=5; return s;
+  s.dailies.forEach(t=>{if(!DIFF[t.diff])t.diff="med";if(!Array.isArray(t.days))t.days=ALL.slice();if(!t.times||typeof t.times!=="object")t.times={};});
+  if(typeof s.distribute!=="boolean") s.distribute=true;
+  s.dayTotal=Math.max(10,Math.min(1000,Number(s.dayTotal)||100));
+  s.todos.forEach(t=>{if(!DIFF[t.diff])t.diff="med";});
+  s.v=6; return s;
 }
 const LVS = () => state.levels;
 const L = () => LVS()[state.level-1];
-const alive = (m,s) => (!m.start||s>=m.start)&&(!m.end||s<m.end);
-const scheduledFor = s => {const wd=parse(s).getDay();return state.missions.daily.filter(m=>m.days.includes(wd)&&alive(m,s));};
-const missionsFor = s => {const sk=state.skips[s]||[];return scheduledFor(s).filter(m=>!sk.includes(m.id));};
-function distribute(list,total){
-  const w=list.map(m=>Math.max(1,Number(m.xp)||1)), sum=w.reduce((a,b)=>a+b,0), out={};
-  if(!list.length) return out;
-  const raw=w.map(x=>x/sum*total), base=raw.map(Math.floor); let left=total-base.reduce((a,b)=>a+b,0);
+const timeOf = (t,wd) => (t.times&&t.times[wd])||"";
+const dueFor = s => {const wd=parse(s).getDay();return state.dailies.map((t,i)=>[t,i]).filter(([t])=>t.days.includes(wd))
+  .sort((a,b)=>{const ta=timeOf(a[0],wd),tb=timeOf(b[0],wd);if(ta&&tb)return ta<tb?-1:ta>tb?1:a[1]-b[1];if(ta)return -1;if(tb)return 1;return a[1]-b[1];}).map(([t])=>t);};
+function xpMap(s){
+  const due=dueFor(s), out={};
+  if(!state.distribute){due.forEach(t=>out[t.id]=DIFF[t.diff].x);return out;}
+  if(!due.length) return out;
+  const w=due.map(t=>DIFF[t.diff].w), sum=w.reduce((a,b)=>a+b,0), raw=w.map(x=>x/sum*state.dayTotal), base=raw.map(Math.floor);
+  let left=state.dayTotal-base.reduce((a,b)=>a+b,0);
   raw.map((r,i)=>[r-base[i],i]).sort((a,b)=>b[0]-a[0]).forEach(([,i])=>{if(left>0){base[i]++;left--;}});
-  list.forEach((m,i)=>out[m.id]=base[i]); return out;
+  due.forEach((t,i)=>out[t.id]=Math.max(1,base[i])); return out;
 }
-const xpMap = s => distribute(missionsFor(s),state.dayTotal);
-const weeklyMap = w => distribute(weeklyFor(w),state.weekTotal);
-function resync(from){
-  for(const s in state.days){ if(s<from) continue; const map=xpMap(s), b=state.days[s];
-    for(const id in b){ if(id in map){ b[id].x=map[id]; } } }
-  for(const w in state.weekly){ if(addDays(w,6)<from) continue; const map=weeklyMap(w), b=state.weekly[w];
-    for(const id in b){ if(id in map){ b[id].x=map[id]; } } }
+function resync(){
+  const t=today();
+  for(const s in state.log){ if(s<t) continue; const m=xpMap(s);
+    for(const id in state.log[s]){ if(id in m){state.log[s][id].x=m[id];state.log[s][id].c=coinsOf(m[id]);} else delete state.log[s][id]; }
+    if(!Object.keys(state.log[s]).length) delete state.log[s]; }
 }
-const weeklyFor = w => state.missions.weekly.filter(m=>alive(m,w));
-const extrasFor = s => state.extras[s]||[];
-const isCountDay = s => state.countDays.includes(parse(s).getDay());
-function countsDay(s){
-  if(!isCountDay(s)) return false;
-  const b=state.days[s]||{}, ms=missionsFor(s), keys=ms.filter(m=>m.key);
-  if(Object.values(b).some(v=>v&&v.k)) return true;
-  if(keys.length) return keys.some(m=>b[m.id]);
-  return ms.length>0 && ms.every(m=>b[m.id]);
-}
-const firstWeek = () => START;
-const curWeek = () => {const w=weekStartOf(today());return w<START?START:w;};
-const refDay = () => today()<START?START:today();
-const avgDayXP = () => state.dayTotal;
-const metaXP = () => Math.max(10,state.goal*state.dayTotal);
-const bagXP = b => Object.values(b||{}).reduce((a,v)=>a+(v&&v.x||0),0);
-const dayXP = s => bagXP(state.days[s]);
-const weeklyXP = w => bagXP(state.weekly[w]);
-const weekXP = w => weekOf(w).reduce((a,s)=>a+dayXP(s),0)+weeklyXP(w);
-const totalXP = () => sumBags(state.days)+sumBags(state.weekly);
+const dayXP = s => Object.values(state.log[s]||{}).reduce((a,v)=>a+v.x,0);
+function totalXP(){let t=0;for(const s in state.log)t+=dayXP(s);for(const x of state.todos)if(x.done)t+=x.x;return t;}
+function coins(){let c=0;for(const s in state.log)for(const v of Object.values(state.log[s]))c+=v.c;for(const x of state.todos)if(x.done)c+=x.c;return c-state.purchases.reduce((a,p)=>a+p.cost,0);}
 const levelProgress = () => Math.max(0,totalXP()-state.levelBase);
-const diasCumpridos = w => weekOf(w).filter(countsDay).length;
-function routineLevelFor(s){let best=1;for(const k in state.levelFrom){const n=Number(k);if(state.levelFrom[k]<=s&&n>best&&n<=state.level)best=n;}return best;}
-const routineFor = s => LVS()[routineLevelFor(s)-1];
-const routineStart = () => {const t=today();return t<START?START:nextMonday(t);};
-function attrXP(){const a={};ATTRS.forEach(k=>a[k]=0);
-  const add=b=>{for(const k in b){const v=b[k];if(v&&v.a in a)a[v.a]+=v.x;}};
-  for(const s in state.days)add(state.days[s]);for(const w in state.weekly)add(state.weekly[w]);return a;}
+function checkLevelUp(){
+  const ups=[];
+  while(!state.done&&levelProgress()>=state.meta){
+    const old=state.level; state.levelBase+=state.meta; state.history.push({level:old,date:today()});
+    if(old===8){state.done=true;ups.push({old,done:true});break;}
+    state.level=old+1; ups.push({old,done:false});
+  }
+  return ups;
+}
 
-/* ---------- A maga (SVG original, inspirada na Bia) ---------- */
+/* ---------- A maga ---------- */
 const STYLE = [
   {robe:"#8b7a62",dark:"#6a5c49",accent:"#a58e6e",hat:null,cape:null,capelet:null,belt:"rope",staff:"stick",gem:null,aura:null,patches:true},
   {robe:"#4f72b8",dark:"#3b5795",accent:"#2f4677",hat:"#34497e",cape:null,capelet:"#2f4677",belt:"sash",bag:true,staff:"stick",gem:null,aura:null},
@@ -597,276 +572,194 @@ function castAvatar(){const s=document.getElementById("stage");s.classList.remov
   const r=document.getElementById("avatar").getBoundingClientRect();burst(r.left+r.width*.76,r.top+r.height*.33,18,[STYLE[state.level-1].gem||"#e8c26a","#fff3c9","#7fe0cf"]);}
 
 /* ---------- Render ---------- */
-let selDay = null, viewWeek = null, shownXP = 0, avatarKey = "";
+let selDay = null, shownXP = 0, avatarKey = "", editing = null, showDone = false;
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const coinSVG = '<svg class="coin" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.5" fill="#e8c26a" stroke="#fff3c9" stroke-width="1.2"/><path d="M10 5.5l1.3 2.8 3 .4-2.2 2.1.5 3-2.6-1.4-2.6 1.4.5-3-2.2-2.1 3-.4z" fill="#a8823a"/></svg>';
+const pen = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
 
 function render(){
   document.body.classList.toggle("calm",!!state.calm);
-  $("soundBtn").setAttribute("aria-pressed",state.sound?"true":"false");$("soundBtn").textContent=state.sound?"Som ligado":"Som desligado";
-  $("calmBtn").setAttribute("aria-pressed",state.calm?"true":"false");
+  if(!selDay) selDay=today();
   const lv=L(); $("lvbadge").textContent="Nível "+lv.n+(state.done?" · completo":"");
   const key=state.level+"|"+state.look.skin+"|"+state.look.hair+"|"+(state.done?1:0);
   if(key!==avatarKey){$("avatar").innerHTML=avatarSVG(state.level,state.look,false);avatarKey=key;}
-  if(!viewWeek) viewWeek=curWeek();
-  if(!selDay||!weekOf(viewWeek).includes(selDay)){const t=today();selDay=weekOf(viewWeek).includes(t)?t:viewWeek;}
-  renderInfo();renderToday();renderWeek();renderAttrs();renderRewards();renderJourney();renderHist();
+  renderInfo(); renderDailies(); renderTodos(); renderRewards(); renderJourney();
 }
 function renderInfo(){
-  const lv=L(), t=today(), meta=metaXP(), prog=levelProgress(), nx=LVS()[lv.n], avg=avgDayXP();
-  const w=weekOf(viewWeek), countDays=w.filter(isCountDay), done=countDays.filter(countsDay).length;
-  const gems=w.map(s=>{const c=isCountDay(s);return `<button class="gem ${c?"":"free"} ${countsDay(s)?"on":""} ${s===t?"today":""}" data-action="gem" data-gem="${s}" title="${c?"Conta para a meta. Toque para deixar livre.":"Dia livre. Toque para fazer contar."}" aria-label="${WD[parse(s).getDay()]}: ${c?"conta":"livre"}"><i></i>${WD[parse(s).getDay()]}<small>${c?"conta":"livre"}</small></button>`;}).join("");
-  const need=Math.max(meta-prog,0), daysLeft=Math.ceil(need/Math.max(avg,1));
-  const rNow=routineFor(refDay()), pendingN=Object.keys(state.levelFrom).map(Number).filter(n=>n<=state.level&&state.levelFrom[n]>refDay()).sort((a,b)=>b-a)[0];
-  let unlock;
-  if(state.done) unlock=`<b>Jornada completa!</b><span>Você é a ${esc(LVS()[7].title)}. Recompensa final: ${esc(state.rewards.final)}.</span>`;
-  else unlock=`<b>Faltam ${need} XP para o Nível ${lv.n+1}${nx?" · "+esc(nx.title):""}.</b><span>Cerca de ${daysLeft} dia${daysLeft===1?"":"s"} completo${daysLeft===1?"":"s"}. O nível desbloqueia na hora em que você bater a meta.</span>`;
+  const lv=L(), nx=LVS()[lv.n], prog=levelProgress(), meta=state.meta;
   $("info").innerHTML=`
     <p class="eyebrow">Nível ${lv.n} de 8 · fase ${esc(lv.phase)}</p>
     <h2 class="title">${esc(lv.title)}</h2>
-    <div class="xprow"><div><span class="bignum" id="xpnum">${shownXP}</span> <span class="muted">XP total</span></div></div>
-    <div class="prog"><div class="lab"><span>${state.done?"Jornada completa":"XP para o próximo nível"}</span><b>${state.done?"✦":Math.min(prog,meta)+" / "+meta+" XP"}</b></div><div class="pbar" aria-hidden="true"><i style="width:${state.done?100:Math.min(prog/meta*100,100)}%"></i></div>
-      <span class="hint">Meta do nível: ${state.goal} dias completos × ${state.dayTotal} XP. Mudar o peso das missões não mexe na meta: o XP só se redistribui.</span></div>
-    <div class="unlock">${unlock}</div>
-    <div class="prog"><div class="lab"><span>Dias cumpridos na semana de ${fmt(w[0])}</span><b>${done} / ${countDays.length}</b></div>
-      <div class="gems">${gems}</div><span class="hint">Toque num dia para marcar se ele conta ou é livre.</span></div>
-    <div class="next"><span class="muted">Rotina em vigor</span><b>${esc(rNow.change)}</b><span class="muted">Acordar ${esc(rNow.wake)} · dormir ${esc(rNow.sleep)} · sessão de ${esc(rNow.session)}</span>
-    ${pendingN?`<span class="muted" style="margin-top:6px">A partir de segunda, ${fmt(state.levelFrom[pendingN])}: <b style="color:var(--parchment)">${esc(LVS()[pendingN-1].change)}</b>.</span>`:""}
-    ${nx&&!state.done?`<span class="muted" style="margin-top:6px">No Nível ${nx.n} você ganha ${esc(nx.unlock)}.</span>`:""}</div>`;
-  animateXP();
+    <div class="prog"><div class="lab"><span>${state.done?"Jornada completa":"XP"}</span><b><span id="xpnum">${Math.min(prog,meta)}</span> / ${meta}</b></div>
+      <div class="pbar" aria-hidden="true"><i style="width:${state.done?100:Math.min(prog/meta*100,100)}%"></i></div></div>
+    <div class="stats"><span class="coins">${coinSVG}<b>${coins()}</b> moedas</span><span class="muted">${totalXP()} XP no total</span></div>
+    <p class="muted">${state.done?`Você é a ${esc(LVS()[7].title)}.`:`Faltam <b style="color:var(--parchment)">${Math.max(meta-prog,0)} XP</b> para virar ${esc(nx.title)} e ganhar ${esc(nx.unlock)}.`}</p>
+    <p class="muted small">Rotina deste nível: ${esc(lv.change)} · acordar ${esc(lv.wake)} · sessão de ${esc(lv.session)}</p>`;
 }
-function animateXP(){
-  const target=totalXP(), el=$("xpnum"); if(!el) return;
-  if(reduce()||shownXP===target){shownXP=target;el.textContent=target;return;}
-  const from=shownXP, t0=performance.now();
-  function step(t){const k=Math.min((t-t0)/650,1);const v=Math.round(from+(target-from)*(1-Math.pow(1-k,3)));el.textContent=v;if(k<1)requestAnimationFrame(step);else shownXP=target;}
-  requestAnimationFrame(step);
+function taskRow(kind,t,checked,xp,disabled,time){
+  return `<div class="task ${checked?"on":""}" id="r-${kind}-${esc(t.id)}">
+    <button class="chk" data-action="${kind==="daily"?"t-daily":"t-todo"}" data-id="${esc(t.id)}" aria-pressed="${checked}" ${disabled?"disabled":""} aria-label="${checked?"Desmarcar":"Concluir"}: ${esc(t.name)}">${checked?"✓":""}</button>
+    <div class="tname"><b>${esc(t.name)}</b><small>${time?`<span class="tm">${esc(time)}</span>`:""}${DIFF[t.diff].n} · +${xp} XP · +${coinsOf(xp)} ${coinSVG}</small></div>
+    <button class="pen" data-action="edit" data-kind="${kind}" data-id="${esc(t.id)}" aria-label="Editar ${esc(t.name)}">${pen}</button></div>`;
 }
-function misBtn(kind,m,rec,disabled,label,extra,xpNow){
-  const on=!!rec, xp=on?rec.x:xpNow;
-  return `<div class="misrow"><button class="mis ${m.key?"key":""} ${extra?"extra":""}" id="m-${kind}-${esc(m.id)}" data-action="toggle" data-kind="${kind}" data-key="${esc(m.id)}" aria-pressed="${on?"true":"false"}" ${disabled?"disabled":""}>
-    <span class="ic">${icon(m.ic||"star")}</span><span><b>${esc(label||m.name)}</b><em>${extra?"Missão extra · só neste dia":esc(m.spell||m.attr)+(m.key?" · cumpre o dia":"")}</em></span><span class="xp">${on?"✦ ":""}+${xp} XP</span></button>
-    ${extra&&!on&&!disabled?`<button class="xdel" data-action="x-del" data-key="${esc(m.id)}" aria-label="Tirar a missão extra ${esc(m.name)}">×</button>`:""}</div>`;
+function renderDailies(){
+  const t=today(), y=addDays(t,-1), due=dueFor(selDay), rec=state.log[selDay]||{};
+  const others=state.dailies.length-due.length, wd=parse(selDay).getDay(), lv=L();
+  const wake=(wd===0||wd===6)?fromMin(toMin(lv.wake)+60):lv.wake;
+  const map=xpMap(selDay);
+  const rows=due.map(d=>{const r=rec[d.id];const shown=Object.assign({},d,d.name===WAKE_NAME?{name:(wd===0||wd===6?"Acordar até ":"Acordar às ")+wake}:{});return taskRow("daily",shown,!!r,r?r.x:map[d.id],false,timeOf(d,wd));}).join("");
+  const done=due.filter(d=>rec[d.id]).length;
+  $("dailyCard").innerHTML=`<h2>Diárias <span>${done}/${due.length}${state.distribute&&due.length?` · ${dayXP(selDay)}/${state.dayTotal} XP`:""}</span></h2>
+    <div class="seg" role="group" aria-label="Qual dia">
+      <button data-action="sel-day" data-day="${t}" aria-pressed="${selDay===t}">Hoje · ${WD[parse(t).getDay()]} ${fmt(t)}</button>
+      <button data-action="sel-day" data-day="${y}" aria-pressed="${selDay===y}">Ontem</button></div>
+    <form class="add" data-form="daily"><input name="n" placeholder="+ Nova diária (Enter)" aria-label="Nova diária" autocomplete="off"></form>
+    <div class="tasks">${rows||'<p class="hint">Nenhuma diária neste dia.</p>'}</div>
+    <div class="row" style="justify-content:flex-start"><button class="linkbtn" data-action="routine">Rotina da semana: dias e horários</button></div>
+    ${others?`<p class="hint">${others} diária${others>1?"s":""} de outros dias não aparece${others>1?"m":""} aqui.</p>`:""}`;
 }
-function editRow(m,xp,past){
-  return `<div class="edrow"><div class="edname"><b>${esc(m.name)}</b><span>${xp} XP neste dia · peso ${m.xp}</span></div>
-    <div class="edctl">${past?"":`<button class="stp" data-action="w-dn" data-key="${esc(m.id)}" aria-label="Diminuir o peso de ${esc(m.name)}">−</button><button class="stp" data-action="w-up" data-key="${esc(m.id)}" aria-label="Aumentar o peso de ${esc(m.name)}">+</button>`}
-    <button class="edit" data-action="skip" data-key="${esc(m.id)}">Pular neste dia</button></div></div>`;
-}
-let editDay=false;
-function renderToday(){
-  const w=weekOf(viewWeek), t=today();
-  const tabs=w.map(s=>`<button class="tab ${countsDay(s)?"done":""}" role="tab" data-action="day" data-day="${s}" aria-selected="${s===selDay?"true":"false"}">${WD[parse(s).getDay()]} ${fmt(s)}</button>`).join("");
-  const future=selDay>t, past=selDay<t, wd=parse(selDay).getDay(), weekend=wd===0||wd===6, r=routineFor(selDay);
-  const wake=weekend?fromMin(toMin(r.wake)+60):r.wake;
-  const b=state.days[selDay]||{}, ms=missionsFor(selDay), xs=extrasFor(selDay), map=xpMap(selDay);
-  const skipped=scheduledFor(selDay).filter(m=>(state.skips[selDay]||[]).includes(m.id));
-  const known=new Set(ms.map(m=>m.id).concat(xs.map(m=>m.id)));
-  const orphan=Object.keys(b).filter(k=>!known.has(k));
-  const lab=m=>m.name===WAKE_NAME?(weekend?"Acordei até "+wake:"Acordei às "+wake):null;
-  let list;
-  if(editDay){
-    list=ms.map(m=>editRow(m,map[m.id],past)).join("");
-    list+=skipped.length?`<p class="hint">Puladas neste dia: ${skipped.map(m=>`${esc(m.name)} <button class="edit" data-action="unskip" data-key="${esc(m.id)}">voltar</button>`).join(" · ")}</p>`:"";
-    list+=`<p class="hint">${past?"Dia que já passou: dá para pular missões, mas o peso só muda de hoje em diante.":"O peso vale deste dia em diante. O total do dia continua "+state.dayTotal+" XP: quando uma missão sobe, as outras descem."}</p>
-      <div class="row" style="justify-content:flex-start"><button class="btn ghost small" data-action="f-add">+ Missão fixa</button><button class="btn small" data-action="day-edit">Concluir edição</button></div>`;
-  } else {
-    list=ms.map(m=>misBtn("day",m,b[m.id],future,lab(m),false,map[m.id])).join("");
-    list+=xs.map(m=>misBtn("day",Object.assign({ic:"star"},m),b[m.id],future,null,true,m.xp)).join("");
-    if(skipped.length) list+=`<p class="hint">Pulada${skipped.length>1?"s":""} neste dia: ${skipped.map(m=>esc(m.name)).join(", ")}.</p>`;
-    if(orphan.length) list+=`<p class="hint">Também registrado neste dia: ${orphan.length} missão(ões) que saíram da lista (${orphan.reduce((a,k)=>a+b[k].x,0)} XP guardados).</p>`;
-  }
-  const hasKey=ms.some(m=>m.key), cd=isCountDay(selDay);
-  const canPrev=viewWeek>firstWeek(), canNext=viewWeek<curWeek();
-  $("todayCard").innerHTML=`<h2>Missões do dia <span>${dayXP(selDay)} / ${ms.length?state.dayTotal:0} XP ${editDay?"":`<button class="edit" data-action="day-edit">Editar este dia</button>`}</span></h2>
-    <div class="weeknav"><button class="edit" data-action="wk" data-d="-7" ${canPrev?"":"disabled"} aria-label="Semana anterior">‹</button><span>Semana de ${fmt(w[0])} a ${fmt(w[6])}</span><button class="edit" data-action="wk" data-d="7" ${canNext?"":"disabled"} aria-label="Próxima semana">›</button></div>
-    <div class="tabs" role="tablist" aria-label="Dias da semana">${tabs}</div>
-    ${future&&!editDay?`<p class="hint">Este dia ainda não chegou. As missões abrem em ${fmt(selDay)}.</p>`:""}
-    <div class="missions">${list||'<p class="hint">Nenhuma missão fixa neste dia.</p>'}</div>
-    ${future||editDay?"":`<div class="row" style="justify-content:flex-start"><button class="btn ghost small" data-action="x-add">+ Missão extra ${selDay===t?"de hoje":"de "+fmt(selDay)}</button><button class="btn ghost small" data-action="edit">Todas as missões fixas</button></div>`}
-    <p class="hint">${!cd?"Dia livre: rende XP normalmente, só não entra na conta de dias.":hasKey?"Dia que conta. A missão tracejada cumpre o dia.":"Dia que conta. Ele fica cumprido quando você faz todas as missões fixas dele."}</p>`;
-}
-function renderWeek(){
-  const b=state.weekly[viewWeek]||{}, notYet=today()<viewWeek;
-  $("weekCard").innerHTML=`<h2>Missões da semana <span>${weeklyXP(viewWeek)} / ${state.weekTotal} XP <button class="edit" data-action="edit">Editar</button></span></h2>
-    <div class="missions">${(()=>{const wm=weeklyMap(viewWeek);return weeklyFor(viewWeek).map(m=>misBtn("week",m,b[m.id],notYet,null,false,wm[m.id])).join("");})()||'<p class="hint">Nenhuma missão semanal.</p>'}</div>
-    <p class="hint">Valem uma vez na semana de ${fmt(viewWeek)}. Elas dividem ${state.weekTotal} XP entre si, e esse XP também conta para o nível.</p>`;
-}
-function renderAttrs(){
-  const a=attrXP();
-  $("attrCard").innerHTML=`<h2>Atributos <span>sobem a cada 50 XP</span></h2><div class="attrs">${ATTRS.map(k=>{const x=a[k],rank=Math.floor(x/50)+1,pct=(x%50)/50*100;
-    return `<div class="attr"><span>${k}</span><span class="bar" aria-hidden="true"><i style="width:${pct}%"></i></span><span class="rank">Nv ${rank}</span></div>`;}).join("")}</div>`;
+function renderTodos(){
+  const t=today(), open=state.todos.filter(x=>!x.done), doneToday=state.todos.filter(x=>x.done&&x.doneAt===t);
+  $("todoCard").innerHTML=`<h2>Afazeres <span>${open.length} em aberto</span></h2>
+    <form class="add" data-form="todo"><input name="n" placeholder="+ Novo afazer (Enter)" aria-label="Novo afazer" autocomplete="off"></form>
+    <div class="tasks">${open.map(x=>taskRow("todo",x,false,DIFF[x.diff].x,false)).join("")||'<p class="hint">Nada em aberto. Afazer é tarefa de uma vez só: conclui e ele sai da lista.</p>'}</div>
+    ${doneToday.length?`<button class="linkbtn" data-action="show-done">${showDone?"Esconder":"Ver"} concluídos hoje (${doneToday.length})</button>${showDone?`<div class="tasks">${doneToday.map(x=>taskRow("todo",x,true,x.x,false)).join("")}</div>`:""}`:""}`;
 }
 function renderRewards(){
-  $("rewardCard").innerHTML=`<h2>Recompensas</h2>
-    <div class="field"><label for="rw-dia">Dia cumprido</label><input id="rw-dia" data-reward="dia" value="${esc(state.rewards.dia)}"></div>
-    <div class="field"><label for="rw-nivel">Nível conquistado</label><input id="rw-nivel" data-reward="nivel" value="${esc(state.rewards.nivel)}"></div>
-    <div class="field"><label for="rw-final">Chefão final: projeto no ar</label><input id="rw-final" data-reward="final" value="${esc(state.rewards.final)}"></div>
-    <p class="hint">O nível sobe sozinho quando o XP bate a meta. A recompensa vem na hora, na cerimônia.</p>`;
+  const c=coins();
+  $("rewardCard").innerHTML=`<h2>Recompensas <span class="coins">${coinSVG}<b>${c}</b></span></h2>
+    <form class="add" data-form="reward"><input name="n" placeholder="+ Nova recompensa (Enter)" aria-label="Nova recompensa" autocomplete="off"></form>
+    <div class="tasks">${state.rewards.map(r=>`<div class="task rew" id="r-reward-${esc(r.id)}"><div class="tname"><b>${esc(r.name)}</b><small>${r.cost} moedas</small></div>
+      <button class="buy" data-action="buy" data-id="${esc(r.id)}" ${c<r.cost?"disabled":""}>${coinSVG}${r.cost}</button>
+      <button class="pen" data-action="edit" data-kind="reward" data-id="${esc(r.id)}" aria-label="Editar ${esc(r.name)}">${pen}</button></div>`).join("")||'<p class="hint">Crie recompensas suas, combinadas antes.</p>'}</div>
+    <p class="hint">Cada tarefa dá moedas: Fácil 1, Médio 2, Difícil 4. Junte e troque pelas suas recompensas.</p>`;
 }
+
 function renderJourney(){
-  const meta=metaXP();
+  const meta=state.meta;
   const nodes=LVS().map(l=>{
-    const h=state.history.find(x=>x.level===l.n);
-    const won=l.n<state.level||(state.done&&l.n===8), cur=!won&&l.n===state.level;
-    const info=won&&h?"conquistado em "+fmt(h.date):cur?levelProgress()+" / "+meta+" XP":"meta de "+meta+" XP";
+    const won=l.n<state.level||(state.done&&l.n===8), cur=!won&&l.n===state.level, h=state.history.find(x=>x.level===l.n);
+    const info=won?(h?"conquistado em "+fmt(h.date):"conquistado"):cur?levelProgress()+" / "+meta+" XP":"meta de "+meta+" XP";
     return `<div class="node ${won?"won":cur?"current":"locked"}"><div class="mini">${avatarSVG(l.n,state.look,true)}</div><b>${l.n} · ${esc(l.title)}</b><small>${info}</small><small>${esc(l.change)}</small><span class="tag">${won?"Conquistado":cur?"Agora":"Bloqueado"}</span></div>`;
   }).join("");
   $("journeyCard").innerHTML=`<h2>Mapa da jornada <span>veja quem você vai se tornar <button class="edit" data-action="lv-edit">Editar jornada</button></span></h2><div class="journey">${nodes}</div>`;
 }
-function renderHist(){
-  const weeks=[...new Set(Object.keys(state.days).filter(k=>Object.keys(state.days[k]).length).map(weekStartOf).concat(Object.keys(state.weekly).filter(k=>Object.keys(state.weekly[k]).length)))].sort().reverse();
-  const ups=state.history.slice().reverse().map(h=>`<div class="hrow"><span class="tag">Nível ${h.level}</span><span>Conquistado em ${fmt(h.date)}</span><span>meta de ${h.meta} XP</span></div>`).join("");
-  const wk=weeks.map(w=>`<div class="hrow"><span class="tag">Semana</span><span>${fmt(w)} a ${fmt(addDays(w,6))}</span><span>${diasCumpridos(w)} dias · ${weekXP(w)} XP</span></div>`).join("");
-  $("histCard").innerHTML=`<h2>Histórico e backup <span>${weeks.length} semana(s) com registros</span></h2>
-    <div class="hist">${ups+wk||'<p class="hint">Seu histórico aparece aqui assim que você marcar a primeira missão.</p>'}</div>
-    <p class="hint">Seus registros ficam salvos neste aparelho, sem internet e sem conta. Baixe um backup todo sábado, na revisão: se você limpar os dados do navegador ou trocar de aparelho, é ele que traz tudo de volta. Para passar o progresso para outro aparelho, baixe aqui e restaure lá.</p>
-    <div class="row" style="justify-content:flex-start"><button class="btn ghost small" data-action="dl">Baixar backup</button><button class="btn ghost small" data-action="copy">Copiar backup</button><button class="btn ghost small" data-action="restore">Restaurar backup</button></div>`;
-}
 
 /* ---------- Ações ---------- */
+document.addEventListener("submit",e=>{
+  const rf=e.target.closest("form[data-rtadd]");
+  if(rf){e.preventDefault();const name=rf.n.value.trim();if(!name)return;state.dailies.push({id:newId(),name,diff:"med",days:[rtWd],times:rf.t.value?{[rtWd]:rf.t.value}:{}});resync();save();render();drawRoutine();const i=document.querySelector("form[data-rtadd] input[name=n]");if(i)i.focus();return;}
+  const f=e.target.closest("form[data-form]"); if(!f) return; e.preventDefault();
+  const name=f.n.value.trim(); if(!name) return;
+  const k=f.dataset.form;
+  if(k==="daily"){state.dailies.push({id:newId(),name,diff:"med",days:ALL.slice(),times:{}});resync();}
+  if(k==="todo") state.todos.push({id:newId(),name,diff:"med",done:false});
+  if(k==="reward") state.rewards.push({id:newId(),name,cost:10});
+  save(); render();
+  const again=document.querySelector(`form[data-form="${k}"] input`); if(again) again.focus();
+  toast(k==="reward"?"Recompensa criada por 10 moedas. Toque no lápis para mudar o preço.":"Criada como Médio. Toque no lápis para mudar a dificuldade"+(k==="daily"?" e os dias.":"."));
+});
 document.addEventListener("click",e=>{
   const el=e.target.closest("[data-action]"); if(!el||el.disabled) return;
-  const a=el.dataset.action;
-  if(a==="toggle") toggle(el.dataset.kind,el.dataset.key);
-  else if(a==="day"){selDay=el.dataset.day;renderToday();}
-  else if(a==="wk"){viewWeek=addDays(viewWeek,Number(el.dataset.d));selDay=null;editDay=false;render();}
-  else if(a==="gem") toggleCountDay(el.dataset.gem);
-  else if(a==="sound"){state.sound=!state.sound;if(state.sound){audio();chime([659,784,988,1319],true);toast("Som ligado: plim ao marcar missão, melodia no dia cumprido e fanfarra ao subir de nível.");}save();render();}
-  else if(a==="calm"){state.calm=!state.calm;save();render();}
+  const a=el.dataset.action, id=el.dataset.id;
+  if(a==="t-daily") toggleDaily(id);
+  else if(a==="t-todo") toggleTodo(id);
+  else if(a==="buy") buy(id);
+  else if(a==="sel-day"){selDay=el.dataset.day;renderDailies();}
+  else if(a==="show-done"){showDone=!showDone;renderTodos();}
+  else if(a==="edit") openEdit(el.dataset.kind,id);
+  else if(a==="ed-diff"){editing.item.diff=el.dataset.d;drawEdit();}
+  else if(a==="ed-day"){const d=Number(el.dataset.d),l=editing.item.days;editing.item.days=l.includes(d)?l.filter(x=>x!==d):l.concat(d).sort();drawEdit();}
+  else if(a==="ed-save") saveEdit();
+  else if(a==="ed-del") delEdit();
+  else if(a==="menu") openMenu();
   else if(a==="custom") openCustom();
-  else if(a==="modal-x") closeModal();
   else if(a==="skin"||a==="hair"){state.look[a]=Number(el.dataset.i);save();render();openCustom();}
-  else if(a==="edit") openEditor();
-  else if(a==="ed-add"){syncGoal();draft[el.dataset.list].push(el.dataset.list==="daily"?{id:newId(),name:"Nova missão fixa",spell:"",attr:"Disciplina",xp:10,ic:"star",key:false,days:[1,2,3,4]}:{id:newId(),name:"Nova missão da semana",spell:"",attr:"Disciplina",xp:10,ic:"star"});drawEditor();}
-  else if(a==="ed-del"){syncGoal();draft[el.dataset.list].splice(Number(el.dataset.i),1);drawEditor();}
-  else if(a==="ed-day"){syncGoal();const m=draft.daily[Number(el.dataset.i)],d=Number(el.dataset.d);m.days=m.days.includes(d)?m.days.filter(x=>x!==d):m.days.concat(d).sort();drawEditor();}
-  else if(a==="ed-count"){syncGoal();const d=Number(el.dataset.d);draft.countDays=draft.countDays.includes(d)?draft.countDays.filter(x=>x!==d):draft.countDays.concat(d).sort();drawEditor();}
-  else if(a==="ed-reset"){draft=Object.assign(DEFAULT_MISSIONS(),{countDays:[1,2,3,4,6],goal:4,dayTotal:100,weekTotal:60});drawEditor();}
-  else if(a==="ed-save") saveEditor(el.dataset.when);
-  else if(a==="ed-confirm"){syncGoal();if(today()<START) saveEditor("today"); else {$("edFoot").innerHTML=edFootHTML(true);$("edFoot").querySelector("[data-when=monday]").focus();}}
-  else if(a==="ed-back"){$("edFoot").innerHTML=edFootHTML(false);}
-  else if(a==="day-edit"){editDay=!editDay;renderToday();}
-  else if(a==="w-up"||a==="w-dn") changeWeight(el.dataset.key,a==="w-up"?1:-1);
-  else if(a==="skip") skipMission(el.dataset.key,true);
-  else if(a==="unskip") skipMission(el.dataset.key,false);
-  else if(a==="f-add") openFixedQuick();
-  else if(a==="fq-day"){const d=Number(el.dataset.d);fq.days=fq.days.includes(d)?fq.days.filter(x=>x!==d):fq.days.concat(d).sort();el.setAttribute("aria-pressed",fq.days.includes(d));}
-  else if(a==="fq-save") saveFixedQuick();
-  else if(a==="x-add") openExtra();
-  else if(a==="x-save") saveExtra();
-  else if(a==="x-del"){const l=state.extras[selDay]||[];state.extras[selDay]=l.filter(m=>m.id!==el.dataset.key);if(!state.extras[selDay].length)delete state.extras[selDay];save();render();}
+  else if(a==="sound"){state.sound=!state.sound;if(state.sound){audio();chime([659,784,988,1319],true);}save();openMenu();}
+  else if(a==="calm"){state.calm=!state.calm;save();render();openMenu();}
   else if(a==="lv-edit") openLevels();
   else if(a==="lv-save") saveLevels();
   else if(a==="dl") downloadBackup();
   else if(a==="copy") copyBackup();
   else if(a==="restore") openRestore();
   else if(a==="do-restore") doRestore();
-});
-document.addEventListener("change",e=>{
-  const r=e.target.dataset&&e.target.dataset.reward;if(r){state.rewards[r]=e.target.value.trim()||"A definir";save();renderInfo();}
-  if(e.target.id==="rsFile"){const f=e.target.files&&e.target.files[0];if(f)f.text().then(t=>{$("rsText").value=t;});}
+  else if(a==="routine"){rtWd=parse(selDay||today()).getDay();drawRoutine();}
+  else if(a==="rt-day"){rtWd=Number(el.dataset.d);drawRoutine();}
+  else if(a==="rt-toggle"){const t=state.dailies.find(x=>x.id===id);if(t){t.days=t.days.includes(rtWd)?t.days.filter(x=>x!==rtWd):t.days.concat(rtWd).sort();resync();save();render();drawRoutine();}}
+  else if(a==="modal-x") closeModal();
 });
 document.addEventListener("input",e=>{
-  const t=e.target;
-  if(draft&&(t.id==="edGoal"||t.id==="edDay"||t.id==="edWeek")){const v=Number(t.value)||0;if(t.id==="edGoal")draft.goal=v||1;if(t.id==="edDay")draft.dayTotal=Math.max(10,v||10);if(t.id==="edWeek")draft.weekTotal=Math.max(0,v);refreshPreviews();return;}
-  const f=t.dataset&&t.dataset.f; if(!f||!draft) return;
-  const m=draft[t.dataset.list][Number(t.dataset.i)];
-  if(f==="xp") m.xp=Math.max(1,Math.min(100,Number(t.value)||1));
-  else if(f==="key") m.key=t.checked;
-  else m[f]=t.value;
-  refreshPreviews();
+  const t=e.target; if(!editing) return;
+  if(t.id==="edName") editing.item.name=t.value;
+  if(t.id==="edCost") editing.item.cost=Math.max(1,Math.min(9999,Number(t.value)||1));
+});
+document.addEventListener("change",e=>{
+  if(e.target.id==="metaIn"){state.meta=Math.max(50,Math.min(5000,Number(e.target.value)||400));const u=checkLevelUp();save();render();toast("Agora cada nível pede "+state.meta+" XP.");if(u.length)setTimeout(()=>ceremony(u),600);}
+  if(e.target.id==="distIn"){state.distribute=e.target.checked;resync();const u=checkLevelUp();save();render();openMenu();if(u.length)setTimeout(()=>ceremony(u),600);}
+  if(e.target.id==="dayIn"){state.dayTotal=Math.max(10,Math.min(1000,Number(e.target.value)||100));resync();const u=checkLevelUp();save();render();openMenu();if(u.length)setTimeout(()=>ceremony(u),600);}
+  if(e.target.dataset&&e.target.dataset.rtTime!==undefined){const t=state.dailies.find(x=>x.id===e.target.dataset.rtTime);if(t){t.times=t.times||{};if(e.target.value)t.times[rtWd]=e.target.value;else delete t.times[rtWd];save();render();drawRoutine();}}
+  if(e.target.id==="rsFile"){const f=e.target.files&&e.target.files[0];if(f)f.text().then(t=>{$("rsText").value=t;});}
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
 
-function findMission(kind,id){
-  if(kind==="week") return weeklyFor(viewWeek).find(x=>x.id===id);
-  return missionsFor(selDay).find(x=>x.id===id)||extrasFor(selDay).find(x=>x.id===id);
-}
-function toggle(kind,id){
-  const dayBefore=countsDay(selDay);
-  const m=findMission(kind,id); if(!m) return;
-  let bag; if(kind==="day") bag=state.days[selDay]=state.days[selDay]||{}; else bag=state.weekly[viewWeek]=state.weekly[viewWeek]||{};
-  const xpv=kind==="week"?weeklyMap(viewWeek)[id]:(xpMap(selDay)[id]!==undefined?xpMap(selDay)[id]:m.xp);
-  const on=!bag[id]; if(on) bag[id]={x:xpv,a:m.attr||"Disciplina",k:kind==="day"&&!!m.key}; else delete bag[id];
-  const ups=on?checkLevelUp():[];
-  save(); render();
-  if(!on) return;
-  const btn=$("m-"+kind+"-"+id); if(btn){btn.classList.add("pop");floatXP(btn,"+"+xpv+" XP");const r=btn.getBoundingClientRect();burst(r.left+30,r.top+r.height/2,10,["#e8c26a","#fff3c9"]);}
+function reward(el,x,c){
+  if(el){el.classList.add("pop");floatXP(el,"+"+x+" XP  +"+c);const r=el.getBoundingClientRect();burst(r.left+24,r.top+r.height/2,12,["#e8c26a","#fff3c9"]);}
   castAvatar(); chime([784,1175]);
-  const dayDone=kind==="day"&&!dayBefore&&countsDay(selDay);
-  if(dayDone) setTimeout(()=>{const g=document.querySelector('[data-gem="'+selDay+'"]');if(g){g.classList.add("lit");const r=g.getBoundingClientRect();burst(r.left+r.width/2,r.top+12,34,["#e8c26a","#fff3c9","#7fe0cf","#ff9db1"]);}
-      chime([659,784,988,1319]);toast("Dia cumprido! "+state.rewards.dia+" liberado.");},350);
-  else if(!ups.length) toast("+"+xpv+" XP em "+(m.attr||"Disciplina")+". Faltam "+Math.max(metaXP()-levelProgress(),0)+" XP para o próximo nível.");
-  if(ups.length) setTimeout(()=>ceremony(ups),dayDone?1600:700);
 }
-function toggleCountDay(s){
-  const d=parse(s).getDay(), on=state.countDays.includes(d);
-  if(on&&state.countDays.length===1){toast("Pelo menos um dia precisa contar.");return;}
-  state.countDays=on?state.countDays.filter(x=>x!==d):state.countDays.concat(d).sort();
-  state.goal=Math.min(state.goal,state.countDays.length);
-  const ups=checkLevelUp(); save(); render();
-  toast(WD[d]+(on?" agora é dia livre.":" agora conta.")+" Meta do nível: "+metaXP()+" XP.");
-  if(ups.length) setTimeout(()=>ceremony(ups),700);
+function afterXP(){const ups=checkLevelUp();save();render();if(ups.length)setTimeout(()=>ceremony(ups),700);return ups.length;}
+function toggleDaily(id){
+  const d=state.dailies.find(x=>x.id===id); if(!d) return;
+  const rec=state.log[selDay]=state.log[selDay]||{};
+  if(rec[id]){delete rec[id];if(!Object.keys(rec).length)delete state.log[selDay];save();render();return;}
+  const x=xpMap(selDay)[id]||DIFF[d.diff].x, c=coinsOf(x); rec[id]={x,c};
+  const before=dueFor(selDay).every(t=>t.id===id||rec[t.id]);
+  const leveled=afterXP(); reward($("r-daily-"+id),x,c);
+  if(!leveled){ if(before) setTimeout(()=>{chime([659,784,988,1319]);const r=$("dailyCard").getBoundingClientRect();burst(r.left+r.width/2,r.top+40,40,["#e8c26a","#fff3c9","#7fe0cf","#ff9db1"]);toast("Todas as diárias de "+(selDay===today()?"hoje":"ontem")+" feitas!");},300);
+    else toast("+"+x+" XP e +"+c+" moedas. Faltam "+Math.max(state.meta-levelProgress(),0)+" XP para o próximo nível."); }
 }
-function afterChange(from,msg){
-  resync(from); const ups=checkLevelUp(); save(); render(); if(msg) toast(msg);
-  if(ups.length) setTimeout(()=>ceremony(ups),700);
+function toggleTodo(id){
+  const t=state.todos.find(x=>x.id===id); if(!t) return;
+  if(t.done){t.done=false;delete t.x;delete t.c;delete t.doneAt;save();render();return;}
+  t.x=DIFF[t.diff].x; t.c=coinsOf(t.x); t.done=true; t.doneAt=today();
+  const el=$("r-todo-"+id); const leveled=afterXP(); reward(el,t.x,t.c);
+  if(!leveled) toast("Afazer concluído! +"+t.x+" XP e +"+t.c+" moedas.");
 }
-function versionedEdit(list,id,eff,patch){
-  const o=list.find(m=>m.id===id&&!m.end&&alive(m,eff))||list.find(m=>m.id===id&&!m.end); if(!o) return;
-  if(today()<START||(o.start&&o.start>=eff)){Object.assign(o,patch);return;}
-  o.end=eff; list.splice(list.indexOf(o)+1,0,Object.assign(clone(o),patch,{start:eff,end:undefined}));
-  list.forEach(m=>{if(m.end===undefined)delete m.end;});
-}
-function changeWeight(id,d){
-  const eff=today()<START?START:(selDay>today()?selDay:today());
-  const m=missionsFor(selDay).find(x=>x.id===id); if(!m) return;
-  const nw=Math.max(1,Math.min(100,(Number(m.xp)||1)+d)); if(nw===m.xp) return;
-  versionedEdit(state.missions.daily,id,eff,{xp:nw});
-  afterChange(eff,null);
-}
-function skipMission(id,on){
-  const l=state.skips[selDay]||[];
-  state.skips[selDay]=on?l.concat(id):l.filter(x=>x!==id);
-  if(!state.skips[selDay].length) delete state.skips[selDay];
-  if(on&&state.days[selDay]) delete state.days[selDay][id];
-  afterChange(selDay,on?"Missão pulada só em "+fmt(selDay)+". O XP dela foi para as outras missões do dia.":"Missão de volta neste dia.");
-}
-let fq=null;
-function openFixedQuick(){
-  fq={days:[parse(selDay).getDay()]};
-  const attrs=ATTRS.map(k=>`<option>${k}</option>`).join("");
-  openModal(`<h3 id="mTitle">Nova missão fixa</h3><p class="hint">Ela se repete nos dias escolhidos a partir de ${selDay>today()?fmt(selDay):"hoje"}. O peso define quanto dos ${state.dayTotal} XP do dia ela leva.</p>
-    <div class="ed" style="text-align:left"><div class="r"><label>Nome<input id="fqName" placeholder="Ex.: revisar flashcards de SQL"></label><label>Peso<input id="fqW" type="number" min="1" max="100" value="10"></label></div>
-    <div class="r2"><label>Atributo<select id="fqAttr">${attrs}</select></label><span></span></div>
-    <div><span class="eyebrow" style="font-size:13px">Dias</span><div class="dtog">${[1,2,3,4,5,6,0].map(d=>`<button data-action="fq-day" data-d="${d}" aria-pressed="${fq.days.includes(d)}">${WD[d]}</button>`).join("")}</div></div></div>
-    <div class="row"><button class="btn ghost" data-action="modal-x">Cancelar</button><button class="btn" data-action="fq-save">Criar missão fixa</button></div>`);
-  $("fqAttr").value="Disciplina";
-}
-function saveFixedQuick(){
-  const name=$("fqName").value.trim(); if(!name){toast("Dê um nome para a missão.");return;}
-  if(!fq.days.length){toast("Escolha pelo menos um dia.");return;}
-  const eff=today()<START?START:(selDay>today()?selDay:today());
-  const m={id:newId(),name,spell:"",attr:$("fqAttr").value,xp:Math.max(1,Math.min(100,Number($("fqW").value)||10)),ic:"star",key:false,days:fq.days.slice()};
-  if(today()>=START) m.start=eff;
-  state.missions.daily.push(m); fq=null; closeModal();
-  afterChange(eff,"Missão fixa criada. O XP do dia foi redistribuído.");
-}
-function checkLevelUp(){
-  const ups=[];
-  while(!state.done){
-    const meta=metaXP(); if(levelProgress()<meta) break;
-    const old=state.level, from=routineStart();
-    state.levelBase+=meta; state.history.push({level:old,date:today(),meta});
-    if(old===8){state.done=true;ups.push({old,done:true,from});break;}
-    state.level=old+1; state.levelFrom[state.level]=from; ups.push({old,done:false,from});
-  }
-  return ups;
+function buy(id){
+  const r=state.rewards.find(x=>x.id===id); if(!r||coins()<r.cost) return;
+  state.purchases.push({name:r.name,cost:r.cost,date:today()}); save(); render();
+  const el=$("r-reward-"+id); if(el){const b=el.getBoundingClientRect();burst(b.left+b.width/2,b.top+b.height/2,50,["#e8c26a","#fff3c9","#ff9db1","#b28cff"]);}
+  chime([523,659,784,1047]); toast("Aproveite: "+r.name+"!");
 }
 
-function openModal(html,wide){$("sheet").className="sheet"+(wide?" wide":"");$("sheet").innerHTML=html;$("modal").classList.add("open");const f=$("sheet").querySelector("button,input");if(f)f.focus();}
-function closeModal(){$("modal").classList.remove("open");draft=null;}
+/* ---------- Edição ---------- */
+function openModal(html,wide){$("sheet").className="sheet"+(wide?" wide":"");$("sheet").innerHTML=html;$("modal").classList.add("open");const f=$("sheet").querySelector("input,button");if(f)f.focus();}
+function closeModal(){$("modal").classList.remove("open");editing=null;}
+function listOf(kind){return kind==="daily"?state.dailies:kind==="todo"?state.todos:state.rewards;}
+function openEdit(kind,id){const it=listOf(kind).find(x=>x.id===id);if(!it)return;editing={kind,id,item:clone(it)};drawEdit();}
+function drawEdit(){
+  const {kind,item}=editing, label={daily:"Editar diária",todo:"Editar afazer",reward:"Editar recompensa"}[kind];
+  let h=`<h3 id="mTitle">${label}</h3><div class="ed" style="text-align:left"><label>Nome<input id="edName" value="${esc(item.name)}"></label>`;
+  if(kind!=="reward") h+=`<div><span class="eyebrow small">Dificuldade</span><div class="dtog">${Object.keys(DIFF).map(k=>`<button data-action="ed-diff" data-d="${k}" aria-pressed="${item.diff===k}">${DIFF[k].n} · ${state.distribute&&kind==="daily"?"peso "+DIFF[k].w:DIFF[k].x+" XP"}</button>`).join("")}</div></div>`;
+  if(kind==="daily") h+=`<div><span class="eyebrow small">Dias</span><div class="dtog">${[1,2,3,4,5,6,0].map(d=>`<button data-action="ed-day" data-d="${d}" aria-pressed="${item.days.includes(d)}">${WD[d]}</button>`).join("")}</div></div>`;
+  if(kind==="reward") h+=`<label>Preço em moedas<input id="edCost" type="number" min="1" max="9999" value="${item.cost}"></label>`;
+  h+=`</div>${kind==="daily"&&state.distribute?`<p class="hint">O dia completo vale ${state.dayTotal} XP, dividido entre as diárias do dia pela dificuldade. Difícil leva 4 vezes mais que Fácil.</p>`:""}${kind!=="reward"?'<p class="hint">Os dias que já passaram continuam com o XP da época.</p>':""}
+    <div class="row" style="justify-content:space-between"><button class="del" data-action="ed-del">Apagar</button><span class="row"><button class="btn ghost" data-action="modal-x">Cancelar</button><button class="btn" data-action="ed-save">Salvar</button></span></div>`;
+  openModal(h);
+}
+function saveEdit(){
+  const {kind,id,item}=editing; item.name=String(item.name||"").trim()||"Sem nome";
+  if(kind==="daily"&&!item.days.length){toast("Escolha pelo menos um dia.");return;}
+  const l=listOf(kind), i=l.findIndex(x=>x.id===id); if(i>=0) l[i]=item;
+  if(kind==="daily") resync();
+  closeModal(); save(); render(); toast("Salvo.");
+}
+function delEdit(){
+  const {kind,id}=editing, l=listOf(kind), i=l.findIndex(x=>x.id===id);
+  if(i>=0){ if(kind==="todo"&&l[i].done){toast("Afazer concluído fica no histórico. Desmarque antes, se quiser apagar.");return;} l.splice(i,1); }
+  if(kind==="daily") resync();
+  closeModal(); save(); render(); toast("Apagado. O XP que você já ganhou com ele nos dias anteriores continua.");
+}
 function openCustom(){
   openModal(`<h3 id="mTitle">Sua maga</h3><div class="avatar">${avatarSVG(state.level,state.look,false)}</div>
     <p class="eyebrow">Tom de pele</p><div class="swatches">${SKINS.map((c,i)=>`<button class="sw" style="background:${c}" data-action="skin" data-i="${i}" aria-label="Tom de pele ${i+1}" aria-pressed="${state.look.skin===i}"></button>`).join("")}</div>
@@ -874,133 +767,59 @@ function openCustom(){
     <div class="row"><button class="btn" data-action="modal-x">Pronto</button></div>`);
 }
 
-/* ---------- Missão extra (só de um dia) ---------- */
-function openExtra(){
-  const attrs=ATTRS.map(k=>`<option>${k}</option>`).join("");
-  openModal(`<h3 id="mTitle">Missão extra</h3><p class="hint">Vale só para ${selDay===today()?"hoje":fmt(selDay)}. O XP dela é à parte: soma por cima dos ${state.dayTotal} XP do dia e não cumpre o dia sozinha.</p>
-    <div class="ed" style="text-align:left"><div class="r"><label>Nome<input id="xName" placeholder="Ex.: ler um artigo sobre churn"></label><label>XP<input id="xXp" type="number" min="1" max="100" value="10"></label></div>
-    <div class="r2"><label>Atributo<select id="xAttr">${attrs}</select></label><span></span></div></div>
-    <div class="row"><button class="btn ghost" data-action="modal-x">Cancelar</button><button class="btn" data-action="x-save">Criar missão</button></div>`);
-  $("xAttr").value="Disciplina";
+/* ---------- Menu ---------- */
+function openMenu(){
+  const days=[];for(let i=0;i<14;i++){const s=addDays(today(),-i);if(state.log[s])days.push(`<div class="hrow"><span>${WD[parse(s).getDay()]} ${fmt(s)}</span><span>${Object.keys(state.log[s]).length} diárias</span><span>${dayXP(s)} XP</span></div>`);}
+  const buys=state.purchases.slice(-8).reverse().map(p=>`<div class="hrow"><span>${fmt(p.date)}</span><span>${esc(p.name)}</span><span>${p.cost} moedas</span></div>`).join("");
+  openModal(`<h3 id="mTitle">Menu</h3>
+    <p class="eyebrow">Rotina</p>
+    <div class="row" style="justify-content:flex-start"><button class="btn ghost small" data-action="routine">Rotina da semana: dias e horários</button><button class="btn ghost small" data-action="lv-edit">Editar níveis</button></div>
+    <div class="ed"><label class="check"><input type="checkbox" id="distIn" ${state.distribute?"checked":""}> Distribuir o XP do dia entre as diárias</label>
+      <label>XP de um dia completo<input id="dayIn" type="number" min="10" max="1000" value="${state.dayTotal}" ${state.distribute?"":"disabled"}></label>
+      <p class="hint">${state.distribute?`Ligado: cada dia completo vale ${state.dayTotal} XP, dividido pela dificuldade. Com ${state.meta} XP por nível, são uns ${Math.round(state.meta/state.dayTotal*10)/10} dias completos por nível.`:"Desligado: Fácil vale 5 XP, Médio 10 e Difícil 20, não importa quantas tarefas tem no dia."}</p></div>
+    <div class="ed"><label>XP para subir cada nível<input id="metaIn" type="number" min="50" max="5000" value="${state.meta}"></label></div>
+    <p class="eyebrow">Preferências</p>
+    <div class="row" style="justify-content:flex-start"><button class="chip" data-action="sound" aria-pressed="${state.sound}">${state.sound?"Som ligado":"Som desligado"}</button><button class="chip" data-action="calm" aria-pressed="${state.calm}">Modo calmo ${state.calm?"ligado":"desligado"}</button><button class="chip" data-action="custom">Aparência da maga</button></div>
+    <p class="eyebrow">Histórico (14 dias)</p><div class="hist">${days.join("")||'<p class="hint">Ainda vazio.</p>'}</div>
+    ${buys?`<p class="eyebrow">Recompensas resgatadas</p><div class="hist">${buys}</div>`:""}
+    <p class="eyebrow">Backup</p>
+    <p class="hint">Seus registros ficam salvos neste aparelho, sem internet e sem conta. Baixe um backup todo sábado, na revisão: se você limpar os dados do navegador ou trocar de aparelho, é ele que traz tudo de volta. Para passar o progresso para outro aparelho, baixe aqui e restaure lá.</p>
+    <div class="row" style="justify-content:flex-start"><button class="btn ghost small" data-action="dl">Baixar backup</button><button class="btn ghost small" data-action="copy">Copiar backup</button><button class="btn ghost small" data-action="restore">Restaurar backup</button></div>
+    <div class="row"><button class="btn" data-action="modal-x">Fechar</button></div>`,true);
 }
-function saveExtra(){
-  const name=$("xName").value.trim(); if(!name){toast("Dê um nome para a missão.");return;}
-  const xp=Math.max(1,Math.min(100,Number($("xXp").value)||10));
-  (state.extras[selDay]=state.extras[selDay]||[]).push({id:newId(),name,xp,attr:$("xAttr").value,ic:"star"});
-  save(); closeModal(); render(); toast("Missão extra criada para "+(selDay===today()?"hoje":fmt(selDay))+".");
-}
-
-/* ---------- Editor de missões fixas ---------- */
-let draft=null;
-const newId=()=>"m"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-function syncGoal(){if(!draft)return;const g=$("edGoal"),d=$("edDay"),w=$("edWeek");if(g)draft.goal=Number(g.value)||draft.goal;if(d)draft.dayTotal=Math.max(10,Number(d.value)||draft.dayTotal);if(w)draft.weekTotal=Math.max(0,Number(w.value)||0);}
-const effToday=()=>today()<START?START:today();
-const effMonday=()=>today()<START?START:nextMonday(today());
-function previewMeta(){
-  if(!draft) return "";
-  const r=refDay(), vals=draft.countDays.map(wd=>draft.daily.filter(m=>m.days.includes(wd)&&(!m.start||m.start<=r)).reduce((a,m)=>a+Number(m.xp||0),0));
-  const g=Math.max(1,Math.min(draft.countDays.length||1,Number(draft.goal)||1));
-  return Math.max(10,g*draft.dayTotal)+" XP por nível ("+g+" dias × "+draft.dayTotal+" XP)";
-}
-function openEditor(){
-  draft={daily:clone(state.missions.daily.filter(m=>!m.end)),weekly:clone(state.missions.weekly.filter(m=>!m.end)),countDays:state.countDays.slice(),goal:state.goal,dayTotal:state.dayTotal,weekTotal:state.weekTotal};
-  drawEditor();
-}
-function weightPreview(list,m){
-  if(!draft) return "";
-  if(list==="weekly"){const tot=draft.weekly.reduce((a,x)=>a+Math.max(1,Number(x.xp)||1),0);return "≈ "+Math.round(Math.max(1,Number(m.xp)||1)/tot*draft.weekTotal)+" XP na semana";}
-  const vals=m.days.map(wd=>{const same=draft.daily.filter(x=>x.days.includes(wd));const tot=same.reduce((a,x)=>a+Math.max(1,Number(x.xp)||1),0);return Math.round(Math.max(1,Number(m.xp)||1)/tot*draft.dayTotal);});
-  if(!vals.length) return "Sem dias escolhidos";
-  const mn=Math.min(...vals), mx=Math.max(...vals); return "≈ "+(mn===mx?mn:mn+" a "+mx)+" XP por dia";
-}
-function refreshPreviews(){document.querySelectorAll(".wprev").forEach(el=>{const [l,i]=el.dataset.prev.split("-");const m=draft&&draft[l][Number(i)];if(m)el.textContent=weightPreview(l,m);});const mp=$("edMeta");if(mp)mp.textContent=previewMeta();}
-function edCard(list,m,i){
-  const icons=Object.keys(ICONS).map(k=>`<option value="${k}" ${m.ic===k?"selected":""}>${ICONS[k][0]}</option>`).join("");
-  const attrs=ATTRS.map(k=>`<option ${m.attr===k?"selected":""}>${k}</option>`).join("");
-  const base=`data-list="${list}" data-i="${i}"`;
-  let h=`<div class="ed">${m.start&&m.start>today()?`<span class="tag" style="justify-self:start">começa em ${fmt(m.start)}</span>`:""}<div class="r"><label>Nome<input ${base} data-f="name" value="${esc(m.name)}"></label><label>Peso<input type="number" min="1" max="100" ${base} data-f="xp" value="${m.xp}"></label></div><span class="hint wprev" data-prev="${list}-${i}">${weightPreview(list,m)}</span>
-    <div class="r2"><label>Nome mágico (opcional)<input ${base} data-f="spell" value="${esc(m.spell||"")}"></label><label>Atributo<select ${base} data-f="attr">${attrs}</select></label></div>
-    <div class="r2"><label>Ícone<select ${base} data-f="ic">${icons}</select></label>`;
-  if(list==="daily") h+=`<label class="check"><input type="checkbox" ${base} data-f="key" ${m.key?"checked":""}> Cumpre o dia</label>`; else h+=`<span></span>`;
-  h+=`</div>`;
-  if(list==="daily") h+=`<div><span class="eyebrow" style="font-size:13px">Dias</span><div class="dtog">${[1,2,3,4,5,6,0].map(d=>`<button data-action="ed-day" data-i="${i}" data-d="${d}" aria-pressed="${m.days.includes(d)}">${WD[d]}</button>`).join("")}</div></div>`;
-  h+=`<div class="foot"><span></span><button class="del" data-action="ed-del" data-list="${list}" data-i="${i}">Remover</button></div></div>`;
-  return h;
-}
-function drawEditor(){
-  const sched=state.missions.daily.concat(state.missions.weekly).filter(m=>m.end&&m.end>today());
-  openModal(`<h3 id="mTitle">Editar missões fixas e meta</h3>
-    <p class="hint">Missões fixas se repetem nos dias escolhidos. Para algo de um dia só, use "+ Missão extra" no card do dia. Os dias que já passaram nunca mudam: o que você marcou continua salvo com o XP da época.</p>
-    <p class="eyebrow">Meta do nível</p>
-    <div class="dtog">${[1,2,3,4,5,6,0].map(d=>`<button data-action="ed-count" data-d="${d}" aria-pressed="${draft.countDays.includes(d)}">${WD[d]}: ${draft.countDays.includes(d)?"conta":"livre"}</button>`).join("")}</div>
-    <div class="ed"><div class="r2"><label>XP de um dia completo<input type="number" min="10" max="1000" id="edDay" value="${draft.dayTotal}"></label><label>XP das missões da semana<input type="number" min="0" max="1000" id="edWeek" value="${draft.weekTotal}"></label></div>
-    <div class="r"><label>Meta de dias completos por nível<input type="number" min="1" max="7" id="edGoal" value="${draft.goal}"></label><span></span></div>
-    <p class="hint">Meta de XP calculada: <b id="edMeta">${previewMeta()}</b>. O peso de cada missão só decide como o XP do dia é dividido. A meta muda quando você muda o XP de um dia completo ou a meta de dias.</p></div>
-    <p class="eyebrow">Missões fixas do dia</p><div class="edlist">${draft.daily.map((m,i)=>edCard("daily",m,i)).join("")}</div>
-    <div class="row" style="justify-content:flex-start"><button class="btn ghost small" data-action="ed-add" data-list="daily">+ Missão fixa</button></div>
-    <p class="eyebrow">Missões da semana</p><div class="edlist">${draft.weekly.map((m,i)=>edCard("weekly",m,i)).join("")}</div>
-    <div class="row" style="justify-content:flex-start"><button class="btn ghost small" data-action="ed-add" data-list="weekly">+ Missão da semana</button></div>
-    ${sched.length?`<p class="hint">Já agendado para sair: ${sched.map(m=>esc(m.name)+" (em "+fmt(m.end)+")").join(", ")}.</p>`:""}
-    <div class="edfoot" id="edFoot">${edFootHTML(false)}</div>`,true);
-}
-function edFootHTML(asking){
-  const mon=effMonday();
-  if(!asking) return `<button class="btn ghost small" data-action="ed-reset">Voltar ao padrão</button><span class="row"><button class="btn ghost" data-action="modal-x">Cancelar</button><button class="btn" data-action="ed-confirm">Confirmar mudanças</button></span>`;
-  return `<span class="ask">As mudanças nas missões começam a valer:</span><span class="row"><button class="btn ghost" data-action="ed-back">Voltar</button><button class="btn ghost" data-action="ed-save" data-when="today">A partir de hoje</button><button class="btn" data-action="ed-save" data-when="monday">A partir de segunda, ${fmt(mon)}</button></span>`;
-}
-const FIELDS=["name","spell","attr","xp","ic","key","days"];
-const sameM=(a,b)=>FIELDS.every(f=>JSON.stringify(a[f]===undefined?null:a[f])===JSON.stringify(b[f]===undefined?null:b[f]));
-function applyList(orig,dlist,eff){
-  const out=orig.slice();
-  for(const o of orig){ if(o.end) continue;
-    const d=dlist.find(x=>x.id===o.id);
-    if(!d){ if(o.start&&o.start>=eff){out.splice(out.indexOf(o),1);} else o.end=eff; continue; }
-    if(!sameM(o,d)){ if(o.start&&o.start>=eff){Object.assign(o,d,{start:o.start});} else { o.end=eff; out.splice(out.indexOf(o)+1,0,Object.assign(clone(d),{id:o.id,start:eff,end:undefined})); } }
-  }
-  for(const d of dlist) if(!orig.some(o=>o.id===d.id)) out.push(Object.assign(clone(d),{start:eff}));
-  return out.map(m=>{const c=Object.assign({},m);if(c.end===undefined)delete c.end;return c;});
-}
-function saveEditor(when){
-  syncGoal();
-  const clean=l=>l.map(m=>Object.assign(m,{name:String(m.name||"").trim()||"Missão sem nome",spell:String(m.spell||"").trim(),xp:Math.max(1,Math.min(100,Number(m.xp)||1))}));
-  clean(draft.daily);clean(draft.weekly);
-  if(!draft.countDays.length){toast("Escolha pelo menos um dia que conta.");return;}
-  state.countDays=draft.countDays.slice().sort(); state.goal=Math.max(1,Math.min(state.countDays.length,Number(draft.goal)||1));
-  state.dayTotal=Math.max(10,Math.min(1000,Number(draft.dayTotal)||100)); state.weekTotal=Math.max(0,Math.min(1000,Number(draft.weekTotal)||0));
-  let msg;
-  if(today()<START){
-    const keep=l=>l.filter(m=>m.end);
-    state.missions={daily:keep(state.missions.daily).concat(clone(draft.daily)),weekly:keep(state.missions.weekly).concat(clone(draft.weekly))};
-    msg="Mudanças salvas."; resync(START);
-  } else {
-    const eff=when==="monday"?effMonday():effToday();
-    const effW=when==="monday"?eff:weekStartOf(eff);
-    state.missions={daily:applyList(state.missions.daily,draft.daily,eff),weekly:applyList(state.missions.weekly,draft.weekly,effW)};
-    msg=when==="monday"?"Mudanças nas missões agendadas para segunda, "+fmt(eff)+".":"Mudanças valendo a partir de hoje.";
-    resync(when==="monday"?eff:effToday());
-  }
-  draft=null; const ups=checkLevelUp(); save(); closeModal(); render();
-  toast(msg+" Meta do nível: "+metaXP()+" XP.");
-  if(ups.length) setTimeout(()=>ceremony(ups),700);
-}
-
-/* ---------- Editar jornada (níveis) ---------- */
 function openLevels(){
-  openModal(`<h3 id="mTitle">Editar jornada</h3><p class="hint">Mude o nome dos níveis e o plano de cada semana. As roupas da maga continuam as mesmas de cada nível.</p>
-    <div class="edlist">${LVS().map((l,i)=>`<div class="ed"><span class="eyebrow" style="font-size:13px">Nível ${l.n}</span>
+  openModal(`<h3 id="mTitle">Editar níveis e rotina</h3><p class="hint">Mude o nome dos níveis e a rotina de cada fase. As roupas da maga continuam as mesmas de cada nível.</p>
+    <div class="edlist">${LVS().map((l,i)=>`<div class="ed"><span class="eyebrow small">Nível ${l.n}</span>
       <div class="r2"><label>Nome do nível<input id="lv${i}-title" value="${esc(l.title)}"></label><label>Fase do projeto<input id="lv${i}-phase" value="${esc(l.phase)}"></label></div>
-      <label>Mudança da semana<input id="lv${i}-change" value="${esc(l.change)}"></label>
-      <div class="r2"><label>Acordar<input id="lv${i}-wake" value="${esc(l.wake)}"></label><label>Dormir<input id="lv${i}-sleep" value="${esc(l.sleep)}"></label></div>
-      <label>Sessão<input id="lv${i}-session" value="${esc(l.session)}"></label></div>`).join("")}</div>
-    <div class="row"><button class="btn ghost" data-action="modal-x">Cancelar</button><button class="btn" data-action="lv-save">Salvar jornada</button></div>`,true);
+      <label>Mudança na rotina<input id="lv${i}-change" value="${esc(l.change)}"></label>
+      <div class="r2"><label>Acordar<input id="lv${i}-wake" value="${esc(l.wake)}"></label><label>Sessão<input id="lv${i}-session" value="${esc(l.session)}"></label></div></div>`).join("")}</div>
+    <div class="row"><button class="btn ghost" data-action="modal-x">Cancelar</button><button class="btn" data-action="lv-save">Salvar</button></div>`,true);
 }
 function saveLevels(){
-  state.levels=LVS().map((l,i)=>{const g=f=>{const v=$("lv"+i+"-"+f).value.trim();return v||l[f];};
-    return Object.assign({},l,{title:g("title"),phase:g("phase"),change:g("change"),wake:g("wake"),sleep:g("sleep"),session:g("session")});});
+  state.levels=LVS().map((l,i)=>{const g=f=>{const el=$("lv"+i+"-"+f);const v=el?el.value.trim():"";return v||l[f];};
+    return Object.assign({},l,{title:g("title"),phase:g("phase"),change:g("change"),wake:g("wake"),session:g("session")});});
   save(); closeModal(); render(); toast("Jornada salva.");
 }
 
-/* ---------- Cerimônia de nível ---------- */
+/* ---------- Rotina da semana ---------- */
+let rtWd=1;
+function drawRoutine(){
+  const ref=(()=>{let s=today();while(parse(s).getDay()!==rtWd)s=addDays(s,1);return s;})();
+  const on=dueFor(ref), off=state.dailies.filter(t=>!t.days.includes(rtWd)), map=xpMap(ref);
+  const row=(t,inDay)=>`<div class="rtrow ${inDay?"in":""}">
+    <button class="chk" data-action="rt-toggle" data-id="${esc(t.id)}" aria-pressed="${inDay}" aria-label="${inDay?"Tirar de":"Colocar em"} ${WD[rtWd]}: ${esc(t.name)}">${inDay?"✓":""}</button>
+    <div class="tname"><b>${esc(t.name)}</b><small>${DIFF[t.diff].n}${inDay?" · +"+map[t.id]+" XP":""}</small></div>
+    ${inDay?`<input type="time" class="rttime" data-rt-time="${esc(t.id)}" value="${esc(timeOf(t,rtWd))}" aria-label="Horário de ${esc(t.name)}">`:""}</div>`;
+  openModal(`<h3 id="mTitle">Rotina da semana</h3>
+    <div class="seg wrap">${[1,2,3,4,5,6,0].map(d=>`<button data-action="rt-day" data-d="${d}" aria-pressed="${rtWd===d}">${WD[d]}</button>`).join("")}</div>
+    <p class="hint">${on.length} diária${on.length===1?"":"s"} em ${WD[rtWd]}${state.distribute&&on.length?", dividindo "+state.dayTotal+" XP":""}. Coloque um horário para a lista aparecer em ordem. Os dias que já passaram não mudam.</p>
+    <div class="tasks" style="text-align:left">${on.map(t=>row(t,true)).join("")||'<p class="hint">Nenhuma diária neste dia ainda.</p>'}</div>
+    <form class="add rtadd" data-rtadd="1"><input name="n" placeholder="+ Nova diária só de ${WD[rtWd]} (Enter)" aria-label="Nova diária" autocomplete="off"><input name="t" type="time" aria-label="Horário"></form>
+    ${off.length?`<p class="eyebrow small" style="text-align:left">Outras diárias (toque para colocar em ${WD[rtWd]})</p><div class="tasks" style="text-align:left">${off.map(t=>row(t,false)).join("")}</div>`:""}
+    <div class="row"><button class="btn" data-action="modal-x">Pronto</button></div>`,true);
+}
+
+/* ---------- Cerimônia ---------- */
 function ceremony(ups){
   const last=ups[ups.length-1], old=ups[0].old, lv=last.done?LVS()[7]:LVS()[last.old];
   openModal(`<h3 id="mTitle">${last.done?"Chefão final vencido!":"Nível "+lv.n+" conquistado!"}</h3>
@@ -1011,7 +830,7 @@ function ceremony(ups){
   const fin=()=>{ const av=$("cerAv"); if(!av) return;
     if(!last.done){av.innerHTML=avatarSVG(lv.n,state.look,false)+'<div class="flash"></div>';av.classList.add("reveal");}
     $("cerTitle").textContent=lv.title;
-    $("cerTxt").innerHTML=last.done?`Projeto no ar. Recompensa final: <b>${esc(state.rewards.final)}</b>.`:`Você ganhou ${esc(lv.unlock)}.<br>Recompensa do nível: <b>${esc(state.rewards.nivel)}</b>.<br>Rotina nova a partir de segunda, ${fmt(last.from)}: <b>${esc(lv.change)}</b>.`;
+    $("cerTxt").innerHTML=last.done?`Projeto no ar. Você venceu a jornada inteira.`:`Você ganhou ${esc(lv.unlock)}.<br>Nova rotina, a partir da próxima segunda: <b>${esc(lv.change)}</b>.<br>Que tal comprar uma recompensa para comemorar?`;
     const r=av.getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height/2,90,["#e8c26a","#fff3c9","#7fe0cf","#ff9db1","#b28cff"]);
     chime([523,659,784,1047,1319,1568]); render(); };
   if(reduce()) fin(); else { setTimeout(()=>$("flash")&&$("flash").classList.add("go"),500); setTimeout(fin,950); }
@@ -1037,7 +856,7 @@ function openRestore(){
     <div class="row"><button class="btn ghost" data-action="modal-x">Cancelar</button><button class="btn" data-action="do-restore">Restaurar</button></div>`);
 }
 function doRestore(){
-  try{const o=JSON.parse($("rsText").value);const s=o&&o.state?o.state:o;if(!s||typeof s!=="object"||!("days" in s))throw 0;
+  try{const o=JSON.parse($("rsText").value);const s=o&&o.state?o.state:o;if(!s||typeof s!=="object"||!(("dailies" in s)||("days" in s)))throw 0;
     state=migrate(s);avatarKey="";shownXP=totalXP();checkLevelUp();save();closeModal();render();toast("Backup restaurado.");}
   catch(e){toast("Não reconheci esse backup. Confira se colou o texto inteiro.");}
 }
